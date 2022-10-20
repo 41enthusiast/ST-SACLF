@@ -2,3 +2,5 @@ data/
 wandb/
 kaokore-kmeans/
 pacs_styles/
+checkpoints/
+__pycache__/
