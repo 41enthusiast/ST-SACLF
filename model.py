@@ -8,6 +8,7 @@ from collections import OrderedDict
 
 from utils import drop_connect
 from pretrained_models import *
+from torchvision.models import vgg16
 """
 VGG-16 with attention
 """
@@ -25,8 +26,11 @@ class AttnVGG(nn.Module): #the vgg n densnet versions
         # attention blocks
         self.attention = attention
         if self.attention:
-            self.projector0 = ProjectorBlock(backbone.project_ins[0], 512)
-            self.projector1 = ProjectorBlock(backbone.project_ins[1], 512)
+            
+            self.project_ins = backbone.project_ins
+            for i,p_name in enumerate(['projector0', 'projector1', 'projector2', 'projector3']):
+                if backbone.project_ins[i] != 512:
+                    setattr(self, p_name, ProjectorBlock(backbone.project_ins[i], 512))
 
             self.attn0 = SpatialAttn(in_features=512, normalize_attn=normalize_attn)# (batch_size,1,H,W), (batch_size,C)
             self.attn1 = SpatialAttn(in_features=512, normalize_attn=normalize_attn)
@@ -54,11 +58,21 @@ class AttnVGG(nn.Module): #the vgg n densnet versions
         #print(g.shape, l0.shape, l1.shape, l2.shape, l3.shape)
         # attention
         if self.attention:
-            c0, g0 = self.attn0(self.projector0(l0), g)
-            c1, g1 = self.attn1(self.projector1(l1), g)#this gets it to the same out ch as the next 2 layers
-            c2, g2 = self.attn2(l2, g)
-            c3, g3 = self.attn3(l3, g)
-            g = torch.cat((g0, g1,g2,g3), dim=1) # batch_sizex3C
+            for i in range(4):
+                if hasattr(self,f'projector{i}'):
+                    locals()[f'c{i}'], locals()[f'g{i}'] = getattr(self,f'attn{i}')(getattr(self,f'projector{i}')(locals()[f'l{i}']), g)
+                else:
+                    locals()[f'c{i}'], locals()[f'g{i}'] = getattr(self,f'attn{i}')(locals()[f'l{i}'], g)
+            
+            # c0, g0 = self.attn0(self.projector0(l0), g)
+            # c1, g1 = self.attn1(self.projector1(l1), g)#this gets it to the same out ch as the next 2 layers
+            # c2, g2 = self.attn2(l2, g)
+            # c3, g3 = self.attn3(l3, g)
+            
+            all_locals = locals()
+            global_feats = [all_locals[f'g{i}'] for i in range(4)]
+            attn_maps = [all_locals[f'c{i}'] for i in range(4)]
+            g = torch.cat(global_feats, dim=1) # batch_sizex3C
 
             # fc layer
             out = torch.relu(self.fc1(g)) # batch_sizexnum_classes
@@ -69,7 +83,7 @@ class AttnVGG(nn.Module): #the vgg n densnet versions
                 out = self.dropout(out, self.p, self.training)
 
         else:
-            c0, c1, c2, c3 = None, None, None
+            attn_maps = [None, None, None, None]
             out = self.fc1(torch.squeeze(g))
 
             if self.dropout_mode == 'dropout':
@@ -78,7 +92,7 @@ class AttnVGG(nn.Module): #the vgg n densnet versions
                 out = self.dropout(out, self.p, self.training)
 
         out = self.classify(out)
-        return [out, c0, c1, c2, c3]
+        return [out,]+ attn_maps
 
 
 
@@ -195,7 +209,8 @@ class AttnResnet(nn.Module): #the vgg n densnet versions
 
 # Test
 if __name__ == '__main__':
-    model = AttnVGG(num_classes=10,backbone=Vgg16([2, 9, 22, 30]), dropout_mode='dropout', p=0.2, model_subtype='vgg13')
+    Vgg16([2, 9, 22, 30])
+    model = AttnVGG(num_classes=10,backbone=vgg16(pretrained=True).features, dropout_mode='dropout', p=0.2, model_subtype='vgg13')
     x = torch.randn(16,3,256,256)
     opt = torch.optim.Adam(model.parameters())
 

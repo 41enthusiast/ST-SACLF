@@ -2,7 +2,7 @@ import torch.cuda
 
 from dataset_processing.pacs import *
 from model import AttnVGG
-from pretrained_models import Vgg16
+from pretrained_models import Vgg, Vgg16
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import wandb
@@ -12,6 +12,8 @@ from utils import *
 import time
 from torchmetrics.functional import precision_recall, f1_score
 from typing import List
+from torchvision.utils import make_grid
+from torch.utils.data import ConcatDataset, WeightedRandomSampler
 
 class Classifier(pl.LightningModule):
 
@@ -21,8 +23,10 @@ class Classifier(pl.LightningModule):
                  dropout_type='dropout',
                  dropout_p=0.2,
                  num_classes=4,
+                 class_names=[],
                  regularization_type='L1',
-                 weight_decay=1e-6
+                 weight_decay=1e-6,
+                 dataset_used='kaokore'
                  ):
         """
         Inputs
@@ -33,13 +37,14 @@ class Classifier(pl.LightningModule):
             num_inner_steps - Number of inner loop updates to perform
         """
         super().__init__()
+        print('Initializing model and train,val,test setup')
         self.save_hyperparameters()
         self.model = AttnVGG(self.hparams.num_classes,
-                             Vgg16([2, 9, 22, 30]),
+                             Vgg16([2, 9, 22, 30]),#Vgg([2, 9, 22, 30]),
                              self.hparams.dropout_type,
                              self.hparams.dropout_p)
         self.criterion = focal_loss(self.hparams.num_classes, self.hparams.gamma, self.hparams.alpha)  # 2, 2)
-        self.optimzer, _ = self.configure_optimizers()
+        self.optimzer = self.configure_optimizers()
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.lr)
@@ -52,8 +57,8 @@ class Classifier(pl.LightningModule):
         outputs = model(imgs)
         if isinstance(outputs, list):
             preds = outputs[0]
-        # compute the loss
 
+        # compute the loss
         # regularization - specifically l1
         reg_loss = torch.tensor(0., requires_grad=True)
         if self.hparams.regularization_type == 'L1':
@@ -63,22 +68,22 @@ class Classifier(pl.LightningModule):
         else:
             reg_loss
 
-        # print(labels, preds.shape)
         loss = self.criterion(labels.squeeze(), preds) + reg_loss
-        acc = (preds.argmax(dim=1) == labels).float()
+        acc = (preds.argmax(dim=1) == labels).float().mean()
         return loss, preds, acc
 
 
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y= y-1
+        if self.hparams.dataset_used == 'pacs':
+            y= y-1
         loss, preds, acc = self.run_model(self.model, x, y)
 
         self.log('train_loss', loss.detach(), on_epoch=True)
         self.log('train_acc', acc.detach(), on_epoch=True)
 
-        return loss, acc  # Returning None means we skip the default training optimizer steps by PyTorch Lightning
+        return {'loss': loss, 'acc': acc}  # Returning None means we skip the default training optimizer steps by PyTorch Lightning
 
 
     def validation_step(self, batch, batch_idx):
@@ -88,9 +93,8 @@ class Classifier(pl.LightningModule):
         self.log('val_loss', loss.detach(), on_epoch=True)
         self.log('val_acc', acc.detach(), on_epoch=True)
 
-        precision, recall = precision_recall(preds.argmax(dim=1), y, average='macro', num_classes=4)
-        f1_val = f1_score(preds.argmax(dim=1), y, average='macro', num_classes=4)
-        # print('Test step finished')
+        precision, recall = precision_recall(preds.argmax(dim=1), y, average='macro', num_classes=self.hparams.num_classes)
+        f1_val = f1_score(preds.argmax(dim=1), y, average='macro', num_classes=self.hparams.num_classes)
 
         self.log_dict({'val_loss': loss.detach(), 'val_accuracy': acc.mean().detach(), 'val_recall': recall.detach(),
                        'val_precision': precision.detach(), 'val_f1': f1_val.detach()})
@@ -125,13 +129,12 @@ class Classifier(pl.LightningModule):
         loss, preds, acc = self.run_model(self.model, x, y)
         precision, recall = precision_recall(preds.argmax(dim=1), y, average='macro', num_classes=4)
         f1_val = f1_score(preds.argmax(dim=1), y, average='macro', num_classes=4)
-        # print('Test step finished')
 
         self.log_dict({'test_loss': loss.detach(), 'test_accuracy': acc.mean().detach(), 'test_recall': recall.detach(),
                        'test_precision': precision.detach(), 'test_f1': f1_val.detach()})
 
         return {'test_loss': loss.detach(), 'test_accuracy': acc.mean().detach(), 'test_recall': recall.detach(),
-                'test_precision': precision.detach(), 'test_f1': f1_val.detach()}
+                'test_precision': precision.detach(), 'test_f1': f1_val.detach(), 'attention': batch}
 
     def test_epoch_end(self, step_outputs):
         print('Collecting test results')
@@ -151,13 +154,55 @@ class Classifier(pl.LightningModule):
         self.logger.experiment.log({'Test table': global_test_table})
         self.log_dict(averages)
 
+        print('Test visualizations')
+
+        inputs = outputs[0]['attention']
+        #print(inputs.shape)
+        
+        images = inputs[0]#inputs[0:16, :, :, :]
+        I = make_grid(images, nrow=4, normalize=True, scale_each=True)
+        _, c0, c1, c2, c3 = self.model(images)
+        print(I.shape, c0.shape, c1.shape, c2.shape, c3.shape)
+        attn0 = visualize_attn(I, c0)
+        attn1 = visualize_attn(I, c1)
+        attn2 = visualize_attn(I, c2)
+        attn3 = visualize_attn(I, c3)
+
+        viz_table = wandb.Table(
+            columns=['image', 'layer 0', 'low layer', 'middle layer', 'end layer'])
+
+        w_img = wandb.Image(I)
+        w_attn0 = wandb.Image(attn0)
+        w_attn1 = wandb.Image(attn1)
+        w_attn2 = wandb.Image(attn2)
+        w_attn3 = wandb.Image(attn3)
+
+        viz_table.add_data(w_img, w_attn0, w_attn1, w_attn2, w_attn3)
+        self.logger.experiment.log({'Attention visualization': viz_table})
+
+        print('Making the confusion matrix')
+        cm = make_confusion_matrix(self.model, self.hparams.num_classes, test_loader, device)
+        cm_img = plot_confusion_matrix(cm, self.hparams.class_names)
+        w_cm = wandb.Image(cm_img)
+
+        # log most and least confident images
+        print('Logging the most and least confident images')
+        (lc_scores, lc_imgs), (mc_scores, mc_imgs) = get_most_and_least_confident_predictions(self.model,
+                                                                                                test_loader, self.device)
+        w_lc = wandb.Image(make_grid(lc_imgs, nrow=4, normalize=True, scale_each=True))
+        w_mc = wandb.Image(make_grid(mc_imgs, nrow=4, normalize=True, scale_each=True))
+
+        self.logger.experiment.log({'Confusion Matrix': w_cm, 'Least Confident Images': w_lc, 'Most Confident Images': w_mc})
+
         return averages
 
 
-def train_model(model_class, train_loader, val_loader, **kwargs):
+def train_model(model_class, train_loader, val_loader, test_loader, epochs, **kwargs):
     trainer = pl.Trainer(default_root_dir=os.path.join('./checkpoints', model_class.__name__),
+                         logger=wandb_logger,
                          gpus=1 if str(device) == "cuda:0" else 0,
-                         max_epochs=2,
+                         accelerator='gpu', devices=1,
+                         max_epochs=epochs,
                          callbacks=[ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_acc"),
                                     LearningRateMonitor("epoch")],
                          progress_bar_refresh_rate=0)
@@ -176,6 +221,7 @@ def train_model(model_class, train_loader, val_loader, **kwargs):
         trainer.fit(model, train_loader, val_loader)
         model = model_class.load_from_checkpoint(
             trainer.checkpoint_callback.best_model_path)  # Load best checkpoint after training
+        trainer.test(model,test_loader)
 
     return model
 
@@ -185,27 +231,69 @@ def train_model(model_class, train_loader, val_loader, **kwargs):
 if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    label_domain = os.listdir('data/pacs_data')[0]
-    EXPERIMENT_NAME = 'PACS_indv_domain_train_'+label_domain
-    print('Loading train')
-    train_loader, _ = get_domain_dl(label_domain)
-    print('Loading val')
-    val_loader, _ = get_domain_dl(label_domain, 'crossval')
-    print('Loading test')
-    test_loader, _ = get_domain_dl(label_domain, 'test')
+    DATASET = 'kaokore'
+    BATCH_SIZE = 8
+    NUM_WORKERS = 8
+    EPOCHS = 20
+    EXPERIMENT_NAME = 'kaokore-vgg16-kmeans-rep'
 
-    wandb_logger = WandbLogger(project = 'pacs-classifier')
+    transform_kaokore = transforms.Compose([
+            transforms.Resize((256,256)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+
+    if DATASET == 'pacs':
+        label_domain = os.listdir('data/pacs_data')[0]
+        EXPERIMENT_NAME = 'PACS_indv_domain_train_'+label_domain
+        print('Loading train')
+        train_loader, _ = get_domain_dl(label_domain)
+        print('Loading val')
+        val_loader, _ = get_domain_dl(label_domain, 'crossval')
+        print('Loading test')
+        test_loader, _ = get_domain_dl(label_domain, 'test')
+        class_names = 'dog  elephant  giraffe  guitar  horse  house  person'.split('  ')
+    else:
+        train_ds = ImageFolder('../kaokore_imagenet_style/status/train', transform=transform_kaokore)
+        #train_ds_wts = torch.ones(len(train_ds))*0.5
+        train_dataset_stylized_rare = ImageFolder('../kaokore-stylized/rare_classes', transform=transforms.ToTensor())
+        #train_dataset_stylized_rare_wts = torch.ones(len(train_dataset_stylized_rare))*0.5
+        train_dataset_stylized_rep = ImageFolder('../kaokore-stylized/centroid_classes', transform=transforms.ToTensor())
+        #train_dataset_stylized_rep_wts = torch.ones(len(train_dataset_stylized_rep))*0.5
+        train_dataset = ConcatDataset([train_ds, train_dataset_stylized_rep])#, train_dataset_stylized_rep])
+        #train_wts = torch.cat([train_ds_wts,train_dataset_stylized_rep_wts])#,train_dataset_stylized_rep_wts])
+
+        val_dataset = ImageFolder('../kaokore_imagenet_style/status/dev', transform=transform_kaokore)
+        test_dataset = ImageFolder('../kaokore_imagenet_style/status/test', transform=transform_kaokore)
+
+        print('Loading train')
+        train_loader = DataLoader(train_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS,
+                                    shuffle=True#sampler=WeightedRandomSampler(train_wts, len(train_wts))
+                                    )
+        print('Loading val')
+        val_loader = DataLoader(val_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
+        print('Loading test')
+        test_loader = DataLoader(test_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
+        class_names = 'commoner  incarnation  noble  warrior'.split('  ')
+    wandb_logger = WandbLogger(project = 'stcluster-classifier')
 
     print('starting train')
     classifier_model = train_model(Classifier,
                                   lr=1e-3,
                                   train_loader=train_loader,
                                   val_loader=val_loader,
+                                  test_loader=test_loader,
+                                  epochs=EPOCHS,
+
                                   gamma=2,
                                   alpha=2,
                                   dropout_type='dropout',
                                   dropout_p=0.2,
                                   num_classes=4,
+                                  class_names = class_names,
                                   regularization_type='L1',
-                                  weight_decay=1e-6
+                                  weight_decay=1e-6,
+                                  dataset_used = DATASET
                                   )
+    print('Finished')
+    
