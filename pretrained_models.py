@@ -272,7 +272,11 @@ class Vgg16Decoder(nn.Module):
 
 
 if __name__ == '__main__':
-    temp_img = torch.randn((8,3,255,255))
-    temp = Vgg16([2, 7, 12, 19])
+    temp_img = torch.randn((8, 3, 255, 255))
+    vgg_output_lyrs = {'og':[2, 9, 22, 30],
+                       'st':[1, 8, 13, 20],
+                       'st-vgg13':[1, 6, 11, 16],
+                       'vgg13': [1, 8, 18, 23]}['og']
+    temp = Vgg16(vgg_output_lyrs)
     print(temp)
     #print(temp(temp_img)[1].shape)

@@ -14,6 +14,7 @@ from torchmetrics.functional import precision_recall, f1_score
 from typing import List
 from torchvision.utils import make_grid
 from torch.utils.data import ConcatDataset, WeightedRandomSampler
+from hyperopt import hp, tpe, fmin
 
 class Classifier(pl.LightningModule):
 
@@ -45,6 +46,7 @@ class Classifier(pl.LightningModule):
                              self.hparams.dropout_p)
         self.criterion = focal_loss(self.hparams.num_classes, self.hparams.gamma, self.hparams.alpha)  # 2, 2)
         self.optimzer = self.configure_optimizers()
+        self.hyperparameter_optimization_val = 0.0
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.lr)
@@ -119,8 +121,7 @@ class Classifier(pl.LightningModule):
                                    averages['val_recall'], averages['val_precision'], averages['val_f1'])
         self.logger.experiment.log({'Val table': global_val_table})
         self.log_dict(averages)
-
-        return averages
+        return averages['val_accuracy']
 
 
     def test_step(self, batch, batch_idx):
@@ -201,7 +202,7 @@ def train_model(model_class, train_loader, val_loader, test_loader, epochs, **kw
     trainer = pl.Trainer(default_root_dir=os.path.join('./checkpoints', model_class.__name__),
                          logger=wandb_logger,
                          gpus=1 if str(device) == "cuda:0" else 0,
-                         accelerator='gpu', devices=1,
+                         #accelerator='gpu',
                          max_epochs=epochs,
                          callbacks=[ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_acc"),
                                     LearningRateMonitor("epoch")],
@@ -221,64 +222,29 @@ def train_model(model_class, train_loader, val_loader, test_loader, epochs, **kw
         trainer.fit(model, train_loader, val_loader)
         model = model_class.load_from_checkpoint(
             trainer.checkpoint_callback.best_model_path)  # Load best checkpoint after training
-        trainer.test(model,test_loader)
+        #trainer.test(model,test_loader)
+        opt_metric = trainer.validate(model, val_loader)
 
-    return model
+
+    return model, opt_metric
 
     # Training constant (same as for ProtoNet)
 
 
-if __name__ == '__main__':
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+def main(p):
+
+    print(p)
+    train_rep= stratified_split(train_dataset_stylized_rep, p[0])
+    train_rare = stratified_split(train_dataset_stylized_rare, p[1])
+    train_dataset = ConcatDataset([train_ds, train_rep, train_rare])
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False)
 
     DATASET = 'kaokore'
-    BATCH_SIZE = 8
-    NUM_WORKERS = 8
-    EPOCHS = 20
-    EXPERIMENT_NAME = 'kaokore-vgg16-kmeans-rep'
-
-    transform_kaokore = transforms.Compose([
-            transforms.Resize((256,256)),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
-
-    if DATASET == 'pacs':
-        label_domain = os.listdir('data/pacs_data')[0]
-        EXPERIMENT_NAME = 'PACS_indv_domain_train_'+label_domain
-        print('Loading train')
-        train_loader, _ = get_domain_dl(label_domain)
-        print('Loading val')
-        val_loader, _ = get_domain_dl(label_domain, 'crossval')
-        print('Loading test')
-        test_loader, _ = get_domain_dl(label_domain, 'test')
-        class_names = 'dog  elephant  giraffe  guitar  horse  house  person'.split('  ')
-    else:
-        train_ds = ImageFolder('../kaokore_imagenet_style/status/train', transform=transform_kaokore)
-        #train_ds_wts = torch.ones(len(train_ds))*0.5
-        train_dataset_stylized_rare = ImageFolder('../kaokore-stylized/rare_classes', transform=transforms.ToTensor())
-        #train_dataset_stylized_rare_wts = torch.ones(len(train_dataset_stylized_rare))*0.5
-        train_dataset_stylized_rep = ImageFolder('../kaokore-stylized/centroid_classes', transform=transforms.ToTensor())
-        #train_dataset_stylized_rep_wts = torch.ones(len(train_dataset_stylized_rep))*0.5
-        train_dataset = ConcatDataset([train_ds, train_dataset_stylized_rep])#, train_dataset_stylized_rep])
-        #train_wts = torch.cat([train_ds_wts,train_dataset_stylized_rep_wts])#,train_dataset_stylized_rep_wts])
-
-        val_dataset = ImageFolder('../kaokore_imagenet_style/status/dev', transform=transform_kaokore)
-        test_dataset = ImageFolder('../kaokore_imagenet_style/status/test', transform=transform_kaokore)
-
-        print('Loading train')
-        train_loader = DataLoader(train_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS,
-                                    shuffle=True#sampler=WeightedRandomSampler(train_wts, len(train_wts))
-                                    )
-        print('Loading val')
-        val_loader = DataLoader(val_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
-        print('Loading test')
-        test_loader = DataLoader(test_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
-        class_names = 'commoner  incarnation  noble  warrior'.split('  ')
-    wandb_logger = WandbLogger(project = 'stcluster-classifier')
+    EPOCHS = 2
 
     print('starting train')
-    classifier_model = train_model(Classifier,
+
+    classifier_model, val_acc = train_model(Classifier,
                                   lr=1e-3,
                                   train_loader=train_loader,
                                   val_loader=val_loader,
@@ -295,5 +261,53 @@ if __name__ == '__main__':
                                   weight_decay=1e-6,
                                   dataset_used = DATASET
                                   )
-    print('Finished')
-    
+    print('Finished', val_acc)
+    return val_acc
+
+if __name__ == '__main__':
+    DATASET = 'kaokore'
+    BATCH_SIZE = 8
+    NUM_WORKERS = 8
+    EPOCHS = 5
+
+    wandb_logger = WandbLogger(project='stcluster-classifier')
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    transform_kaokore = transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
+
+    if DATASET == 'pacs':
+        label_domain = os.listdir('data/pacs_data')[0]
+        EXPERIMENT_NAME = 'PACS_indv_domain_train_' + label_domain
+        print('Loading train')
+        train_loader, train_ds = get_domain_dl(label_domain)
+        print('Loading val')
+        val_loader, _ = get_domain_dl(label_domain, 'crossval')
+        print('Loading test')
+        test_loader, _ = get_domain_dl(label_domain, 'test')
+        class_names = 'dog  elephant  giraffe  guitar  horse  house  person'.split('  ')
+    else:
+        EXPERIMENT_NAME = 'kaokore-vgg16-kmeans'
+        p1 = p2 = 0.5
+        train_ds = ImageFolder('../kaokore_imagenet_style/status/train', transform=transform_kaokore)
+        train_dataset_stylized_rare = ImageFolder('../kaokore-stylized/rare_classes',
+                                                  transform=transforms.ToTensor())
+        train_dataset_stylized_rep = ImageFolder('../kaokore-stylized/centroid_classes',
+                                                 transform=transforms.ToTensor())
+
+        val_dataset = ImageFolder('../kaokore_imagenet_style/status/dev', transform=transform_kaokore)
+        test_dataset = ImageFolder('../kaokore_imagenet_style/status/test', transform=transform_kaokore)
+        val_loader =DataLoader(val_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False)
+        test_loader =DataLoader(test_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False)
+
+        class_names = 'commoner  incarnation  noble  warrior'.split('  ')
+
+        best = fmin(fn=main,
+                    space=[hp.uniform('p1', 1e-6, 1.0),
+                           hp.uniform('p2', 1e-6, 1.0)],
+                    algo=tpe.suggest,
+                    max_evals=10)
+        print(best)

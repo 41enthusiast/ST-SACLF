@@ -10,6 +10,11 @@ import itertools
 from torchvision.utils import make_grid
 import numpy as np
 from torchvision.io import read_image
+from torchvision.datasets import ImageFolder
+from torch.utils.data.sampler import WeightedRandomSampler
+from torch.utils.data import DataLoader, Dataset
+from collections import defaultdict
+import random
 
 def check_paths(args):
     try:
@@ -272,3 +277,38 @@ def visualize_attn(I, c, h = 256):
     # Add the heatmap to the image
     vis = 0.6 * img + 0.4 * attn
     return torch.from_numpy(vis).permute(2,0,1)
+#
+# def make_weights_for_balanced_classes(dataset: ImageFolder):
+#     images, nclasses = dataset.imgs, len(dataset.classes)
+#     count = [0]*nclasses
+#     for item in images:
+#         count[item[1]] += 1
+#     weight_per_class = [0.] * nclasses
+#     N = float(sum(count))
+#     for i in range(nclasses):
+#         weight_per_class[i] = N/float(count[i])
+#     weight = [0] * len(images)
+#     for idx, val in enumerate(images):
+#         weight[idx] = weight_per_class[val[1]]
+#     return weight
+#
+#
+# def make_stratified_subset(dataset: ImageFolder, p: float, bsz: int = 8, nworkers: int = 8):
+#     weights = make_weights_for_balanced_classes(dataset)
+#     weights = torch.DoubleTensor(weights)
+#     sampler = WeightedRandomSampler(weights, len(weights))
+#     train_loader = DataLoader(dataset, batch_size=bsz, shuffle=True,
+#                               sampler= sampler, num_workers= nworkers, pin_memory=True)
+#     return train_loader
+
+def stratified_split(dataset : ImageFolder, fraction):
+    indices_per_label = defaultdict(list)
+    for index, label in enumerate(dataset.targets):
+        indices_per_label[label].append(index)
+    indices = []
+    for label, idxs in indices_per_label.items():
+        n_samples_for_label = round(len(idxs) * fraction)
+        random_indices_sample = random.sample(idxs, n_samples_for_label)
+        indices += random_indices_sample
+    inputs = torch.utils.data.Subset(dataset, indices)
+    return inputs

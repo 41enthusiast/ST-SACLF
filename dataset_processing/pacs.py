@@ -34,7 +34,7 @@ class PACS_Dataset(ImageFolder):
     def __len__(self):
         return len(self.filenames)
 
-def get_domain_dl(domain_name: str, transform = transforms.ToTensor(), data_type: str = 'train'):
+def get_domain_dl(domain_name: str, transform = transforms.ToTensor(), batch_size: int = 4, data_type: str = 'train'):
     domain_names = ['art_painting', 'cartoon', 'photo', 'sketch']
     domain_labels_path = {domain_name: glob.glob(f'data/{domain_name}_{data_type}_*')[0] for domain_name in domain_names}[domain_name]
     #print(domain_labels_path)
@@ -44,7 +44,7 @@ def get_domain_dl(domain_name: str, transform = transforms.ToTensor(), data_type
                                     domain_name,
                                     transform)
     #print(training_dataset.class_to_idx)
-    training_dl = DataLoader(training_dataset, 4, True)
+    training_dl = DataLoader(training_dataset, batch_size, True)
 
     return training_dl, training_dataset
 
