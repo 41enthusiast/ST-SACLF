@@ -1,0 +1,32 @@
+wandb: Currently logged in as: mridulav (use `wandb login --relogin` to force relogin)
+wandb: wandb version 0.13.4 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.12.11
+wandb: Run data is saved locally in /home2/txlx81/new_repos/temp_test/kaokore-visapp/wandb/run-20221027_042003-qwsg7y93
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run usual-silence-85
+wandb: ⭐️ View project at https://wandb.ai/mridulav/stcluster-classifier
+wandb: 🚀 View run at https://wandb.ai/mridulav/stcluster-classifier/runs/qwsg7y93
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/utils/data/dataloader.py:478: UserWarning: This DataLoader will create 8 worker processes in total. Our suggested max number of worker in current system is 4, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:96: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=0)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+  rank_zero_deprecation(
+GPU available: True, used: False
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/pytorch_lightning/trainer/trainer.py:1823: PossibleUserWarning: GPU available but not used. Set `accelerator` and `devices` using `Trainer(accelerator='gpu', devices=1)`.
+  rank_zero_warn(
+Global seed set to 42
+
+  | Name  | Type    | Params
+----------------------------------
+0 | model | AttnVGG | 15.9 M
+----------------------------------
+1.2 M     Trainable params
+14.7 M    Non-trainable params
+15.9 M    Total params
+63.465    Total estimated model params size (MB)
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/nn/functional.py:718: UserWarning: Named tensors and all their associated APIs are an experimental feature and subject to change. Please do not use them for anything important until they are released as stable. (Triggered internally at  /pytorch/c10/core/TensorImpl.h:1156.)
+  return torch.max_pool2d(input, kernel_size, stride, padding, dilation, ceil_mode)
+

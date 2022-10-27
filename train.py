@@ -199,14 +199,7 @@ class Classifier(pl.LightningModule):
 
 
 def train_model(model_class, train_loader, val_loader, test_loader, epochs, **kwargs):
-    trainer = pl.Trainer(default_root_dir=os.path.join('./checkpoints', model_class.__name__),
-                         logger=wandb_logger,
-                         gpus=1 if str(device) == "cuda:0" else 0,
-                         #accelerator='gpu',
-                         max_epochs=epochs,
-                         callbacks=[ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_acc"),
-                                    LearningRateMonitor("epoch")],
-                         progress_bar_refresh_rate=0)
+    
     trainer.logger._default_hp_metric = None
 
     # Check whether pretrained model exists. If yes, load it and skip training
@@ -239,8 +232,7 @@ def main(p):
     train_dataset = ConcatDataset([train_ds, train_rep, train_rare])
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False)
 
-    DATASET = 'kaokore'
-    EPOCHS = 2
+    
 
     print('starting train')
 
@@ -268,7 +260,7 @@ if __name__ == '__main__':
     DATASET = 'kaokore'
     BATCH_SIZE = 8
     NUM_WORKERS = 8
-    EPOCHS = 5
+    EPOCHS = 2
 
     wandb_logger = WandbLogger(project='stcluster-classifier')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -292,22 +284,31 @@ if __name__ == '__main__':
     else:
         EXPERIMENT_NAME = 'kaokore-vgg16-kmeans'
         p1 = p2 = 0.5
-        train_ds = ImageFolder('../kaokore_imagenet_style/status/train', transform=transform_kaokore)
-        train_dataset_stylized_rare = ImageFolder('../kaokore-stylized/rare_classes',
+        train_ds = ImageFolder('../../kaokore_imagenet_style/status/train', transform=transform_kaokore)
+        train_dataset_stylized_rare = ImageFolder('../../kaokore-stylized/rare_classes',
                                                   transform=transforms.ToTensor())
-        train_dataset_stylized_rep = ImageFolder('../kaokore-stylized/centroid_classes',
+        train_dataset_stylized_rep = ImageFolder('../../kaokore-stylized/centroid_classes',
                                                  transform=transforms.ToTensor())
 
-        val_dataset = ImageFolder('../kaokore_imagenet_style/status/dev', transform=transform_kaokore)
-        test_dataset = ImageFolder('../kaokore_imagenet_style/status/test', transform=transform_kaokore)
+        val_dataset = ImageFolder('../../kaokore_imagenet_style/status/dev', transform=transform_kaokore)
+        test_dataset = ImageFolder('../../kaokore_imagenet_style/status/test', transform=transform_kaokore)
         val_loader =DataLoader(val_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False)
         test_loader =DataLoader(test_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False)
 
         class_names = 'commoner  incarnation  noble  warrior'.split('  ')
 
-        best = fmin(fn=main,
-                    space=[hp.uniform('p1', 1e-6, 1.0),
-                           hp.uniform('p2', 1e-6, 1.0)],
-                    algo=tpe.suggest,
-                    max_evals=10)
-        print(best)
+    trainer = pl.Trainer(default_root_dir=os.path.join('./checkpoints', Classifier.__name__),
+                         logger=wandb_logger,
+                         gpus=1 if str(device) == "cuda:0" else 0,
+                         #accelerator='gpu',
+                         max_epochs=EPOCHS,
+                         callbacks=[ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_acc"),
+                                    LearningRateMonitor("epoch")],
+                         progress_bar_refresh_rate=0)
+
+    best = fmin(fn=main,
+                space=[hp.uniform('p1', 1e-6, 1.0),
+                        hp.uniform('p2', 1e-6, 1.0)],
+                algo=tpe.suggest,
+                max_evals=3)
+    print(best)
