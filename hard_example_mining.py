@@ -62,13 +62,13 @@ class Flatten(torch.nn.Module):
         return x.view(batch_size, -1)
 
 
-DATASET = 'pacs'
-tgt_path = 'rare'
+DATASET = 'kaokore'
+tgt_path = 'centroid'
 model_subtype = 'vgg19st'
 batch_size = 16
 num_workers = 4
 nb_epochs = 10
-k=10
+k=100
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
@@ -159,7 +159,7 @@ if DATASET == 'kaokore':
         print(cls, ':', len(test_losses[cls]))
 
     # Loss ranking reorder
-    indices_sorted = {cls: sorted(range(len(test_losses[cls])), key=lambda k: test_losses[cls][k], reverse=True) for cls
+    indices_sorted = {cls: sorted(range(len(test_losses[cls])), key=lambda k: test_losses[cls][k], reverse=False) for cls
                       in class_names}  # change this for rare
     # print(indices_sorted)
     test_paths_sorted = {cls: [test_paths[cls][i] for i in indices_sorted[cls]] for cls in class_names}

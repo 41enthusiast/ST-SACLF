@@ -15,6 +15,7 @@ def load_labels(path):
 
 
 if __name__ == '__main__':
+    DATASET = 'kaokore'
     root = '../kaokore'
     data_split =  ['train', 'dev', 'test']
     lbls =  ['gender', 'status']

@@ -41,7 +41,7 @@ class Classifier(pl.LightningModule):
         print('Initializing model and train,val,test setup')
         self.save_hyperparameters()
         self.model = AttnVGG(self.hparams.num_classes,
-                             Vgg16([2, 9, 22, 30]),#Vgg([2, 9, 22, 30]),
+                             Vgg16([2, 9, 22, 30]),
                              self.hparams.dropout_type,
                              self.hparams.dropout_p)
         self.criterion = focal_loss(self.hparams.num_classes, self.hparams.gamma, self.hparams.alpha)  # 2, 2)
@@ -69,7 +69,6 @@ class Classifier(pl.LightningModule):
                     reg_loss = reg_loss + self.hparams.weight_decay * torch.norm(param, 1)
         else:
             reg_loss
-
         loss = self.criterion(labels.squeeze(), preds) + reg_loss
         acc = (preds.argmax(dim=1) == labels).float().mean()
         return loss, preds, acc
@@ -78,8 +77,6 @@ class Classifier(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        if self.hparams.dataset_used == 'pacs':
-            y= y-1
         loss, preds, acc = self.run_model(self.model, x, y)
 
         self.log('train_loss', loss.detach(), on_epoch=True)
@@ -91,6 +88,7 @@ class Classifier(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y = batch
         loss, preds, acc = self.run_model(self.model, x, y)
+
 
         self.log('val_loss', loss.detach(), on_epoch=True)
         self.log('val_acc', acc.detach(), on_epoch=True)
@@ -127,6 +125,7 @@ class Classifier(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         self.model.eval()
         x, y = batch
+
         loss, preds, acc = self.run_model(self.model, x, y)
         precision, recall = precision_recall(preds.argmax(dim=1), y, average='macro', num_classes=4)
         f1_val = f1_score(preds.argmax(dim=1), y, average='macro', num_classes=4)
@@ -225,7 +224,6 @@ def train_model(model_class, train_loader, val_loader, test_loader, epochs, **kw
             trainer.checkpoint_callback.best_model_path)  # Load best checkpoint after training
         #trainer.test(model,test_loader)
 
-
     return model, trainer.logged_metrics['val_acc']
 
     # Training constant (same as for ProtoNet)
@@ -255,21 +253,21 @@ def main(p):
                                   alpha=2,
                                   dropout_type='dropout',
                                   dropout_p=0.2,
-                                  num_classes=4,
+                                  num_classes=len(class_names),
                                   class_names = class_names,
                                   regularization_type='L1',
                                   weight_decay=1e-6,
                                   dataset_used = DATASET
                                   )
 
-    return {'loss': val_acc, 'status': STATUS_OK}
+    return {'loss': 1. - val_acc, 'status': STATUS_OK}
 
 if __name__ == '__main__':
-    DATASET = 'kaokore'
+    DATASET = 'pacs'
     BATCH_SIZE = 8
-    NUM_WORKERS = 8
-    EPOCHS = 1
-    root_path = '..'
+    NUM_WORKERS = 16
+    EPOCHS = 10
+    root_path = 'data'
 
     wandb_logger = WandbLogger(project='stcluster-classifier')
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -282,18 +280,19 @@ if __name__ == '__main__':
     ])
 
     if DATASET == 'pacs':
-        label_domain = os.listdir('data/pacs_data')[0]
+        label_domain = 'art_painting'
         EXPERIMENT_NAME = 'PACS_kmeans_' + label_domain
-        print('Loading train')
-        _, train_ds = get_domain_dl(label_domain)
-        train_dataset_stylized_rare = ImageFolder(root_path + '/pacs-stylized/rare_classes',
-                                                  transform=transforms.ToTensor())
-        train_dataset_stylized_rep = ImageFolder(root_path + '/pacs-stylized/centroid_classes',
-                                                 transform=transforms.ToTensor())
-        print('Loading val')
-        val_loader, _ = get_domain_dl(label_domain, 'crossval')
-        print('Loading test')
-        test_loader, _ = get_domain_dl(label_domain, 'test')
+        print('Loading train in domain', label_domain)
+        train_ds = ImageFolder(root_path+f'/pacs_imagenet_style/{label_domain}/train', transform=transform_kaokore)
+        train_dataset_stylized_rare = ImageFolder(root_path + f'/pacs-kmeans-stylized/{label_domain}/rare_classes',
+                                                  transform=transform_kaokore)
+        train_dataset_stylized_rep = ImageFolder(root_path + f'/pacs-kmeans-stylized/{label_domain}/centroid_classes',
+                                                 transform=transform_kaokore)
+        val_dataset = ImageFolder(root_path + f'/pacs_imagenet_style/{label_domain}/crossval', transform=transform_kaokore)
+        test_dataset = ImageFolder(root_path + f'/pacs_imagenet_style/{label_domain}/test', transform=transform_kaokore)
+        val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False)
+        test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False)
+
         class_names = 'dog  elephant  giraffe  guitar  horse  house  person'.split('  ')
     else:
         EXPERIMENT_NAME = 'kaokore-vgg16-kmeans'
@@ -317,5 +316,5 @@ if __name__ == '__main__':
                 space=[hp.uniform('p1', 1e-6, 1.0),
                        hp.uniform('p2', 1e-6, 1.0)],
                 algo=tpe.suggest,
-                max_evals=3)
-    print(best)
+                max_evals=10)
+    print('best configuration', best)

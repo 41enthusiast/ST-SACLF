@@ -22,10 +22,11 @@ class PACS_Dataset(ImageFolder):
         self.domain_classes, self.domain_class_to_idx = self.find_classes(self.root)
         self.classes, self.class_to_idx = self.find_classes(self.root+f'/{domain_name}')
         self.filenames, self.fileclasses = get_xy(filename, root, sep)
+        self.targets = [int(i)-1 for i in self.fileclasses]
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         sample = self.loader(self.filenames[index])
-        target = int(self.fileclasses[index])
+        target = self.targets[index]
         if self.transform is not None:
             return self.transform(sample), target
         else:
@@ -34,7 +35,7 @@ class PACS_Dataset(ImageFolder):
     def __len__(self):
         return len(self.filenames)
 
-def get_domain_dl(domain_name: str, transform = transforms.ToTensor(), batch_size: int = 4, data_type: str = 'train'):
+def get_domain_dl(domain_name: str, transform = transforms.ToTensor(), batch_size: int = 4, num_workers: int = 8, data_type: str = 'train'):
     domain_names = ['art_painting', 'cartoon', 'photo', 'sketch']
     domain_labels_path = {domain_name: glob.glob(f'data/{domain_name}_{data_type}_*')[0] for domain_name in domain_names}[domain_name]
     #print(domain_labels_path)
@@ -44,7 +45,10 @@ def get_domain_dl(domain_name: str, transform = transforms.ToTensor(), batch_siz
                                     domain_name,
                                     transform)
     #print(training_dataset.class_to_idx)
-    training_dl = DataLoader(training_dataset, batch_size, True)
+    if data_type == 'train':
+        training_dl = DataLoader(training_dataset, batch_size, True, num_workers=num_workers)
+    else:
+        training_dl = DataLoader(training_dataset, batch_size, False, num_workers=num_workers)
 
     return training_dl, training_dataset
 
