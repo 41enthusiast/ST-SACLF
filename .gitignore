@@ -5,3 +5,8 @@ pacs_styles/
 checkpoints/
 __pycache__/
 pacs-ohem*/
+pytorch-AdaIN/data/
+pytorch-AdaIN/__pycache__/
+pytorch-AdaIN/models/
+pytorch-AdaIN/logs/
+pytorch-AdaIN/experiments/

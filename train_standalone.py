@@ -1,3 +1,5 @@
+import torch
+
 from dataset_processing.pacs import *
 from model import AttnVGG
 from pretrained_models import Vgg, Vgg16
@@ -5,7 +7,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import wandb
 from pytorch_lightning.loggers import WandbLogger
-from torch import optim
+from torch import optim, nn
 from utils import *
 import time
 from torchmetrics.functional import precision_recall, f1_score
@@ -41,8 +43,10 @@ class Classifier(pl.LightningModule):
                              Vgg16([2, 9, 22, 30], False),#Vgg([2, 9, 22, 30]),
                              self.hparams.dropout_type,
                              self.hparams.dropout_p)
-        self.criterion = focal_loss(self.hparams.num_classes, self.hparams.gamma, self.hparams.alpha)
+        self.criterion = focal_loss(self.hparams.num_classes, self.hparams.gamma, self.hparams.alpha) # nn.CrossEntropyLoss()
         self.optimzer, self.scheduler = self.configure_optimizers()
+
+        wandb_logger.watch(model=self.model, log='all')
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.lr)
@@ -65,7 +69,7 @@ class Classifier(pl.LightningModule):
         else:
             reg_loss
 
-        loss = self.criterion(labels.squeeze(), preds) + reg_loss
+        loss = self.criterion(preds, labels.squeeze()) + reg_loss
         acc = (preds.argmax(dim=1) == labels).float().mean()
         return loss, preds, acc
 
@@ -191,15 +195,48 @@ class Classifier(pl.LightningModule):
 
         return averages
 
+class InputMonitor(pl.Callback):
+
+    def on_train_batch_start(self, trainer, pl_module, batch, batch_idx, dataloader_idx):
+        if (batch_idx + 1) % trainer.log_every_n_steps == 0:
+            x, y = batch
+            logger = trainer.logger
+            input_histogram = wandb.Histogram(x)
+            output_histogram = wandb.Histogram(y)
+            logger.experiment.log({'input': input_histogram,
+                                   'target': output_histogram,
+                                   'global_step': trainer.global_step})
+
+
+class CheckBatchGradient(pl.Callback):
+    def on_train_start(self, trainer, pl_module):
+        model = trainer.model.model #why is it organized like this
+        n = 0
+
+        eg_input = torch.randn((8, 3, 256, 256)).to(pl_module.device)
+        eg_input.requires_grad = True
+
+        model.zero_grad()
+        output = model(eg_input)
+        output[0][n].abs().sum().backward()
+
+        zero_grad_inds = list(range(eg_input.size(0)))
+        zero_grad_inds.pop(n)
+
+        if eg_input.grad[zero_grad_inds].abs().sum().item() > 0:
+            raise RuntimeError('Your model mixes data across batch dims')
+
 
 def train_model(model_class, train_loader, val_loader, test_loader, epochs, **kwargs):
     trainer = pl.Trainer(default_root_dir=os.path.join('./checkpoints', model_class.__name__),
                          logger=wandb_logger,
-                         gpus=1 if str(device) == "cuda:0" else 0,
-                         accelerator='gpu', devices=1,
+                         gpus=1 if str(device) == "cuda" else 0,
+                         accelerator='gpu',# devices=1,
                          max_epochs=epochs,
-                         callbacks=[ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_acc"),
-                                    LearningRateMonitor("epoch")],
+                         callbacks=[ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_accuracy"),
+                                    LearningRateMonitor("epoch"),
+                                    InputMonitor(),
+                                    CheckBatchGradient()],
                          progress_bar_refresh_rate=0)
     trainer.logger._default_hp_metric = None
 
@@ -230,26 +267,26 @@ if __name__ == '__main__':
     BATCH_SIZE = 12
     NUM_WORKERS = 8
     EPOCHS = 20
-    p1, p2 = [0.58, 0.54]#[0.34, 0.31]##p1 for centroid p2 for rare
+    p1, p2 = [0.34, 0.31]#[0.58, 0.54]##p1 for centroid p2 for rare
     EXPERIMENT_NAME = f'fst-kaokore-vgg16-basic-md-p1c-{p1}'#-p2r-{p2}'
-    dataset_root = '../..'
+    dataset_root = '../visapp-data'
     #style_path = '../../visapp-data/fst-kaokore-ohem' #'data/kaokore-stylized'
-    style_path = '../../visapp-data/fst-kaokore'
+    style_path = '../visapp-data/fst-kaokore'
 
     transform_kaokore = transforms.Compose([
             transforms.Resize((256,256)),
             transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             #transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)), #normalization better overall, though it hurts the final acc
         ])
 
     transform_basic = transforms.Compose([
             transforms.Resize((256,256)),
             transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomPerspective(distortion_scale=0.6, p=0.5),
-            transforms.RandomCrop((256,256)) #this can be jank
+            #transforms.RandomCrop((256,256)) #this can be jank
             #transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)), #normalization better overall, though it hurts the final acc
         ])
 
@@ -282,9 +319,7 @@ if __name__ == '__main__':
         test_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/test', transform=transform_kaokore)
 
         print('Loading train')
-        train_loader = DataLoader(train_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS,
-                                    shuffle=True#sampler=WeightedRandomSampler(train_wts, len(train_wts))
-                                    )
+        train_loader = DataLoader(train_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=True)
         print('Loading val')
         val_loader = DataLoader(val_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
         print('Loading test')
