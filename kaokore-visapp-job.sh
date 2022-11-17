@@ -9,10 +9,10 @@
 #SBATCH -t 1-0 # Set maximum walltime to 1 day
 #SBATCH --job-name=paintings-classifier # Name of the job
 #SBATCH --mem=16G # Request 16Gb of memory
-#SBATCH --nodelist=gpu6
+#SBATCH --exclude=gpu[0-6,10-12]
 
-#SBATCH -o program_output3_old.txt
-#SBATCH -e whoopsies3_old.txt
+#SBATCH -o program_output2_old.txt
+#SBATCH -e whoopsies2_old.txt
 
 # Load the global bash profile
 source /etc/profile
@@ -25,7 +25,7 @@ source ../../mv_test1/bin/activate
 
 #hyperparameter sweep code:
 #wandb sweep --project stcluster-classifier-sweep --entity mridulav train_prob_sweep.yaml
-wandb agent --count 20 mridulav/stcluster-classifier-sweep/uotuwhms
+wandb agent mridulav/stcluster-classifier-sweep/mzypl0tq
 
 #model attention code:
 #python train_standalone.py

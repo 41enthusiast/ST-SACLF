@@ -215,7 +215,8 @@ def train(config = None):
         else:
             
             train_ds = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/train', transform=transform_kaokore)
-            mixed_dataset = stratified_split(ImageFolder(f'{dataset_root}/visapp-data/kaokore_control_v1', transform=transform_kaokore), [config.p2, config.p2, config.p1, config.p1])
+            print(float(config.p1), float(config.p2))
+            mixed_dataset = stratified_split(ImageFolder(f'{dataset_root}/visapp-data/kaokore_control_v1', transform=transform_kaokore), [float(config.p2), float(config.p2), float(config.p1), float(config.p1)])
             train_dataset = ConcatDataset([train_ds, mixed_dataset])
 
             val_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/dev', transform=transform_kaokore)
