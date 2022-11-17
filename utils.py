@@ -74,7 +74,7 @@ def focal_loss(n_classes, gamma=2., alpha=4.):
     gamma = float(gamma)
     alpha = float(alpha)
 
-    def focal_loss_fixed(y, y_pred):
+    def focal_loss_fixed(y_pred, y):
         eps = 1e-9
         pred = torch.softmax(y_pred, dim=1) + eps
         #pred = y_pred + eps
@@ -301,13 +301,13 @@ def visualize_attn(I, c, h = 256):
 #                               sampler= sampler, num_workers= nworkers, pin_memory=True)
 #     return train_loader
 
-def stratified_split(dataset : ImageFolder, fraction):
+def stratified_split(dataset : ImageFolder, fractions):
     indices_per_label = defaultdict(list)
     for index, label in enumerate(dataset.targets):
         indices_per_label[label].append(index)
     indices = []
     for label, idxs in indices_per_label.items():
-        n_samples_for_label = round(len(idxs) * fraction)
+        n_samples_for_label = round(len(idxs) * fractions[label])
         random_indices_sample = random.sample(idxs, n_samples_for_label)
         indices += random_indices_sample
     inputs = torch.utils.data.Subset(dataset, indices)

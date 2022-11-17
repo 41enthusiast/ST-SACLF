@@ -1,0 +1,30 @@
+Loading train
+Loading val
+Loading test
+starting train
+Initializing model and train,val,test setup
+
+Loading train
+Loading val
+Loading test
+starting train
+Initializing model and train,val,test setup
+
+Loading train
+Loading val
+Loading test
+starting train
+Initializing model and train,val,test setup
+
+Loading train
+Loading val
+Loading test
+starting train
+Initializing model and train,val,test setup
+
+Loading train
+Loading val
+Loading test
+starting train
+Initializing model and train,val,test setup
+

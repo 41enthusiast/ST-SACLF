@@ -200,56 +200,57 @@ def train(config = None):
     #         transforms.RandomPerspective(distortion_scale=0.6, p=0.5),
     #         transforms.RandomCrop((256,256)) #this can be jank
     #     ])
+
+    if DATASET == 'pacs':
+        label_domain = os.listdir(f'{dataset_root}/pacs_data')[0]
+        EXPERIMENT_NAME = 'PACS_indv_domain_train_'+label_domain
+        print('Loading train')
+        train_loader, _ = get_domain_dl(label_domain)
+        print('Loading val')
+        val_loader, _ = get_domain_dl(label_domain, 'crossval')
+        print('Loading test')
+        test_loader, _ = get_domain_dl(label_domain, 'test')
+        class_names = 'dog  elephant  giraffe  guitar  horse  house  person'.split('  ')
+    else:
+        
+        train_ds = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/train', transform=transform_kaokore)
+        mixed_dataset = stratified_split(ImageFolder(f'{dataset_root}/visapp-data/kaokore_control_v1', transform=transform_kaokore), [p2, p2, p1, p1])
+        train_dataset = ConcatDataset([train_ds, mixed_dataset])
+
+        val_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/dev', transform=transform_kaokore)
+        test_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/test', transform=transform_kaokore)
+
+        print('Loading train')
+        train_loader = DataLoader(train_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS,
+                                    shuffle=True)
+        print('Loading val')
+        val_loader = DataLoader(val_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
+        print('Loading test')
+        test_loader = DataLoader(test_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
+        class_names = 'commoner  incarnation  noble  warrior'.split('  ')
+    
+
+    print('starting train')
     with wandb.init(config=config, project = 'stcluster-classifier-sweep'):
         config = wandb.config
-        if DATASET == 'pacs':
-            label_domain = os.listdir(f'{dataset_root}/pacs_data')[0]
-            EXPERIMENT_NAME = 'PACS_indv_domain_train_'+label_domain
-            print('Loading train')
-            train_loader, _ = get_domain_dl(label_domain)
-            print('Loading val')
-            val_loader, _ = get_domain_dl(label_domain, 'crossval')
-            print('Loading test')
-            test_loader, _ = get_domain_dl(label_domain, 'test')
-            class_names = 'dog  elephant  giraffe  guitar  horse  house  person'.split('  ')
-        else:
-            
-            train_ds = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/train', transform=transform_kaokore)
-            mixed_dataset = stratified_split(ImageFolder(f'{dataset_root}/visapp-data/kaokore_control_v1', transform=transform_kaokore), [config.p2, config.p2, config.p1, config.p1])
-            train_dataset = ConcatDataset([train_ds, mixed_dataset])
-
-            val_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/dev', transform=transform_kaokore)
-            test_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/test', transform=transform_kaokore)
-
-            print('Loading train')
-            train_loader = DataLoader(train_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS,
-                                        shuffle=True)
-            print('Loading val')
-            val_loader = DataLoader(val_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
-            print('Loading test')
-            test_loader = DataLoader(test_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
-            class_names = 'commoner  incarnation  noble  warrior'.split('  ')
-        
-
-        print('starting train')
 
         gc.collect()
         torch.cuda.empty_cache()
 
         classifier_model = train_model(Classifier,
-                                    lr=0.0008,
+                                    lr=config.learning_rate,
                                     train_loader=train_loader,
                                     val_loader=val_loader,
                                     test_loader=test_loader,
                                     epochs=EPOCHS,
 
-                                    loss_fn = 'focal_loss',
+                                    loss_fn = config.loss_fn,
                                     dropout_type='dropout',
-                                    dropout_p=0.23,
+                                    dropout_p=config.dropout,#where did 0.2 come from
                                     num_classes=len(class_names),
                                     class_names = class_names,
-                                    regularization_type= 'L2',
-                                    weight_decay=0.0004,
+                                    regularization_type= config.reg_loss_term,
+                                    weight_decay=config.wd,
                                     dataset_used = DATASET
                                     )
     gc.collect()
@@ -259,10 +260,11 @@ def train(config = None):
 if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     DATASET = 'kaokore'
-    BATCH_SIZE = 48
+    BATCH_SIZE = 12
     NUM_WORKERS = 8
     EPOCHS = 20
-    #EXPERIMENT_NAME = f'hyperparam-sweep-kaokore-vgg16-p1c-{p1}-p2r-{p2}'
+    p1, p2 = [0.4, 0.5]#[0.58, 0.54]#[0.34, 0.31]##p1 for repr p2 for rare
+    EXPERIMENT_NAME = f'hyperparam-sweep-kaokore-vgg16-p1c-{p1}-p2r-{p2}'
     dataset_root = '../..'
 
     wandb_logger = WandbLogger(project = 'stcluster-classifier-sweep')

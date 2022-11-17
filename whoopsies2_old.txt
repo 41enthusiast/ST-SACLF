@@ -1,0 +1,309 @@
+wandb: Starting wandb agent 🕵️
+2022-11-17 13:51:16,994 - wandb.wandb_agent - INFO - Running runs: []
+2022-11-17 13:51:34,187 - wandb.wandb_agent - INFO - Agent received command: run
+2022-11-17 13:51:34,190 - wandb.wandb_agent - INFO - Agent starting run with config:
+	p1: 0.6
+	p2: 0.9
+2022-11-17 13:51:34,194 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python train_standalone.py --p1=0.6 --p2=0.9
+wandb: Currently logged in as: mridulav (use `wandb login --relogin` to force relogin)
+wandb: WARNING Ignored wandb.init() arg project when running a sweep.
+2022-11-17 13:51:39,207 - wandb.wandb_agent - INFO - Running runs: ['8gawm8ai']
+wandb: wandb version 0.13.5 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.12.11
+wandb: Run data is saved locally in /home2/txlx81/new_repos/temp_test/kaokore-visapp/wandb/run-20221117_135138-8gawm8ai
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Resuming run sleek-sweep-4
+wandb: ⭐️ View project at https://wandb.ai/mridulav/stcluster-classifier-sweep
+wandb: 🧹 View sweep at https://wandb.ai/mridulav/stcluster-classifier-sweep/sweeps/a4l780jm
+wandb: 🚀 View run at https://wandb.ai/mridulav/stcluster-classifier-sweep/runs/8gawm8ai
+wandb: WARNING Ignored wandb.init() arg project when running a sweep.
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/utils/data/dataloader.py:478: UserWarning: This DataLoader will create 8 worker processes in total. Our suggested max number of worker in current system is 4, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:96: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=0)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+  rank_zero_deprecation(
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+Global seed set to 42
+wandb: Waiting for W&B process to finish... (failed 1). Press Control-C to abort syncing.
+wandb: - 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: \ 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: | 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: / 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: \ 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: | 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: / 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: \ 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: | 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: / 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb:                                                                                
+wandb: Synced sleek-sweep-4: https://wandb.ai/mridulav/stcluster-classifier-sweep/runs/8gawm8ai
+wandb: Synced 3 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20221117_135138-8gawm8ai/logs
+Traceback (most recent call last):
+  File "train_standalone.py", line 272, in <module>
+    train()
+  File "train_standalone.py", line 239, in train
+    classifier_model = train_model(Classifier,
+  File "train_standalone.py", line 179, in train_model
+    model = model_class(**kwargs)
+  File "train_standalone.py", line 42, in __init__
+    self.model = AttnVGG(self.hparams.num_classes,
+  File "/home2/txlx81/new_repos/temp_test/kaokore-visapp/model.py", line 44, in __init__
+    self.dropout = nn.Dropout(self.p)
+  File "/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/nn/modules/dropout.py", line 14, in __init__
+    if p < 0 or p > 1:
+TypeError: '<' not supported between instances of 'str' and 'int'
+Traceback (most recent call last):
+  File "train_standalone.py", line 272, in <module>
+    train()
+  File "train_standalone.py", line 239, in train
+    classifier_model = train_model(Classifier,
+  File "train_standalone.py", line 179, in train_model
+    model = model_class(**kwargs)
+  File "train_standalone.py", line 42, in __init__
+    self.model = AttnVGG(self.hparams.num_classes,
+  File "/home2/txlx81/new_repos/temp_test/kaokore-visapp/model.py", line 44, in __init__
+    self.dropout = nn.Dropout(self.p)
+  File "/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/nn/modules/dropout.py", line 14, in __init__
+    if p < 0 or p > 1:
+TypeError: '<' not supported between instances of 'str' and 'int'
+2022-11-17 13:51:49,541 - wandb.wandb_agent - INFO - Cleaning up finished run: 8gawm8ai
+2022-11-17 13:51:54,389 - wandb.wandb_agent - INFO - Agent received command: run
+2022-11-17 13:51:54,391 - wandb.wandb_agent - INFO - Agent starting run with config:
+	p1: 0.6
+	p2: 1
+2022-11-17 13:51:54,395 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python train_standalone.py --p1=0.6 --p2=1
+wandb: Currently logged in as: mridulav (use `wandb login --relogin` to force relogin)
+wandb: WARNING Ignored wandb.init() arg project when running a sweep.
+2022-11-17 13:51:59,405 - wandb.wandb_agent - INFO - Running runs: ['xx54z2no']
+wandb: wandb version 0.13.5 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.12.11
+wandb: Run data is saved locally in /home2/txlx81/new_repos/temp_test/kaokore-visapp/wandb/run-20221117_135157-xx54z2no
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Resuming run driven-sweep-5
+wandb: ⭐️ View project at https://wandb.ai/mridulav/stcluster-classifier-sweep
+wandb: 🧹 View sweep at https://wandb.ai/mridulav/stcluster-classifier-sweep/sweeps/a4l780jm
+wandb: 🚀 View run at https://wandb.ai/mridulav/stcluster-classifier-sweep/runs/xx54z2no
+wandb: WARNING Ignored wandb.init() arg project when running a sweep.
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/utils/data/dataloader.py:478: UserWarning: This DataLoader will create 8 worker processes in total. Our suggested max number of worker in current system is 4, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:96: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=0)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+  rank_zero_deprecation(
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+Global seed set to 42
+wandb: Waiting for W&B process to finish... (failed 1). Press Control-C to abort syncing.
+wandb: - 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: \ 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: | 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: / 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: \ 0.001 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: | 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: / 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: \ 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: | 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: / 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb:                                                                                
+wandb: Synced driven-sweep-5: https://wandb.ai/mridulav/stcluster-classifier-sweep/runs/xx54z2no
+wandb: Synced 3 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20221117_135157-xx54z2no/logs
+Traceback (most recent call last):
+  File "train_standalone.py", line 272, in <module>
+    train()
+  File "train_standalone.py", line 239, in train
+    classifier_model = train_model(Classifier,
+  File "train_standalone.py", line 179, in train_model
+    model = model_class(**kwargs)
+  File "train_standalone.py", line 42, in __init__
+    self.model = AttnVGG(self.hparams.num_classes,
+  File "/home2/txlx81/new_repos/temp_test/kaokore-visapp/model.py", line 44, in __init__
+    self.dropout = nn.Dropout(self.p)
+  File "/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/nn/modules/dropout.py", line 14, in __init__
+    if p < 0 or p > 1:
+TypeError: '<' not supported between instances of 'str' and 'int'
+Traceback (most recent call last):
+  File "train_standalone.py", line 272, in <module>
+    train()
+  File "train_standalone.py", line 239, in train
+    classifier_model = train_model(Classifier,
+  File "train_standalone.py", line 179, in train_model
+    model = model_class(**kwargs)
+  File "train_standalone.py", line 42, in __init__
+    self.model = AttnVGG(self.hparams.num_classes,
+  File "/home2/txlx81/new_repos/temp_test/kaokore-visapp/model.py", line 44, in __init__
+    self.dropout = nn.Dropout(self.p)
+  File "/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/nn/modules/dropout.py", line 14, in __init__
+    if p < 0 or p > 1:
+TypeError: '<' not supported between instances of 'str' and 'int'
+2022-11-17 13:52:09,727 - wandb.wandb_agent - INFO - Cleaning up finished run: xx54z2no
+2022-11-17 13:52:10,077 - wandb.wandb_agent - INFO - Agent received command: run
+2022-11-17 13:52:10,078 - wandb.wandb_agent - INFO - Agent starting run with config:
+	p1: 0.7
+	p2: 0.6
+2022-11-17 13:52:10,081 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python train_standalone.py --p1=0.7 --p2=0.6
+wandb: Currently logged in as: mridulav (use `wandb login --relogin` to force relogin)
+wandb: WARNING Ignored wandb.init() arg project when running a sweep.
+2022-11-17 13:52:15,093 - wandb.wandb_agent - INFO - Running runs: ['3mdlqb0h']
+wandb: wandb version 0.13.5 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.12.11
+wandb: Run data is saved locally in /home2/txlx81/new_repos/temp_test/kaokore-visapp/wandb/run-20221117_135213-3mdlqb0h
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Resuming run classic-sweep-6
+wandb: ⭐️ View project at https://wandb.ai/mridulav/stcluster-classifier-sweep
+wandb: 🧹 View sweep at https://wandb.ai/mridulav/stcluster-classifier-sweep/sweeps/a4l780jm
+wandb: 🚀 View run at https://wandb.ai/mridulav/stcluster-classifier-sweep/runs/3mdlqb0h
+wandb: WARNING Ignored wandb.init() arg project when running a sweep.
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/utils/data/dataloader.py:478: UserWarning: This DataLoader will create 8 worker processes in total. Our suggested max number of worker in current system is 4, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:96: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=0)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+  rank_zero_deprecation(
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+Global seed set to 42
+wandb: Waiting for W&B process to finish... (failed 1). Press Control-C to abort syncing.
+wandb: - 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: \ 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: | 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: / 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: \ 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: | 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: / 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: \ 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: | 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: / 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb:                                                                                
+wandb: Synced classic-sweep-6: https://wandb.ai/mridulav/stcluster-classifier-sweep/runs/3mdlqb0h
+wandb: Synced 3 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20221117_135213-3mdlqb0h/logs
+Traceback (most recent call last):
+  File "train_standalone.py", line 272, in <module>
+    train()
+  File "train_standalone.py", line 239, in train
+    classifier_model = train_model(Classifier,
+  File "train_standalone.py", line 179, in train_model
+    model = model_class(**kwargs)
+  File "train_standalone.py", line 42, in __init__
+    self.model = AttnVGG(self.hparams.num_classes,
+  File "/home2/txlx81/new_repos/temp_test/kaokore-visapp/model.py", line 44, in __init__
+    self.dropout = nn.Dropout(self.p)
+  File "/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/nn/modules/dropout.py", line 14, in __init__
+    if p < 0 or p > 1:
+TypeError: '<' not supported between instances of 'str' and 'int'
+Traceback (most recent call last):
+  File "train_standalone.py", line 272, in <module>
+    train()
+  File "train_standalone.py", line 239, in train
+    classifier_model = train_model(Classifier,
+  File "train_standalone.py", line 179, in train_model
+    model = model_class(**kwargs)
+  File "train_standalone.py", line 42, in __init__
+    self.model = AttnVGG(self.hparams.num_classes,
+  File "/home2/txlx81/new_repos/temp_test/kaokore-visapp/model.py", line 44, in __init__
+    self.dropout = nn.Dropout(self.p)
+  File "/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/nn/modules/dropout.py", line 14, in __init__
+    if p < 0 or p > 1:
+TypeError: '<' not supported between instances of 'str' and 'int'
+2022-11-17 13:52:25,565 - wandb.wandb_agent - INFO - Cleaning up finished run: 3mdlqb0h
+2022-11-17 13:52:25,846 - wandb.wandb_agent - INFO - Agent received command: run
+2022-11-17 13:52:25,846 - wandb.wandb_agent - INFO - Agent starting run with config:
+	p1: 0.7
+	p2: 0.7
+2022-11-17 13:52:25,852 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python train_standalone.py --p1=0.7 --p2=0.7
+wandb: Currently logged in as: mridulav (use `wandb login --relogin` to force relogin)
+wandb: WARNING Ignored wandb.init() arg project when running a sweep.
+wandb: wandb version 0.13.5 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.12.11
+wandb: Run data is saved locally in /home2/txlx81/new_repos/temp_test/kaokore-visapp/wandb/run-20221117_135228-5hmoa6o2
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Resuming run drawn-sweep-7
+wandb: ⭐️ View project at https://wandb.ai/mridulav/stcluster-classifier-sweep
+wandb: 🧹 View sweep at https://wandb.ai/mridulav/stcluster-classifier-sweep/sweeps/a4l780jm
+wandb: 🚀 View run at https://wandb.ai/mridulav/stcluster-classifier-sweep/runs/5hmoa6o2
+wandb: WARNING Ignored wandb.init() arg project when running a sweep.
+2022-11-17 13:52:30,865 - wandb.wandb_agent - INFO - Running runs: ['5hmoa6o2']
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/utils/data/dataloader.py:478: UserWarning: This DataLoader will create 8 worker processes in total. Our suggested max number of worker in current system is 4, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:96: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=0)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+  rank_zero_deprecation(
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+Global seed set to 42
+wandb: Waiting for W&B process to finish... (failed 1). Press Control-C to abort syncing.
+wandb: - 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: \ 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: | 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: / 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: \ 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: | 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: / 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: \ 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: | 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: / 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb:                                                                                
+wandb: Synced drawn-sweep-7: https://wandb.ai/mridulav/stcluster-classifier-sweep/runs/5hmoa6o2
+wandb: Synced 3 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20221117_135228-5hmoa6o2/logs
+Traceback (most recent call last):
+  File "train_standalone.py", line 272, in <module>
+    train()
+  File "train_standalone.py", line 239, in train
+    classifier_model = train_model(Classifier,
+  File "train_standalone.py", line 179, in train_model
+    model = model_class(**kwargs)
+  File "train_standalone.py", line 42, in __init__
+    self.model = AttnVGG(self.hparams.num_classes,
+  File "/home2/txlx81/new_repos/temp_test/kaokore-visapp/model.py", line 44, in __init__
+    self.dropout = nn.Dropout(self.p)
+  File "/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/nn/modules/dropout.py", line 14, in __init__
+    if p < 0 or p > 1:
+TypeError: '<' not supported between instances of 'str' and 'int'
+Traceback (most recent call last):
+  File "train_standalone.py", line 272, in <module>
+    train()
+  File "train_standalone.py", line 239, in train
+    classifier_model = train_model(Classifier,
+  File "train_standalone.py", line 179, in train_model
+    model = model_class(**kwargs)
+  File "train_standalone.py", line 42, in __init__
+    self.model = AttnVGG(self.hparams.num_classes,
+  File "/home2/txlx81/new_repos/temp_test/kaokore-visapp/model.py", line 44, in __init__
+    self.dropout = nn.Dropout(self.p)
+  File "/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/nn/modules/dropout.py", line 14, in __init__
+    if p < 0 or p > 1:
+TypeError: '<' not supported between instances of 'str' and 'int'
+2022-11-17 13:52:41,195 - wandb.wandb_agent - INFO - Cleaning up finished run: 5hmoa6o2
+2022-11-17 13:52:41,482 - wandb.wandb_agent - INFO - Agent received command: run
+2022-11-17 13:52:41,482 - wandb.wandb_agent - INFO - Agent starting run with config:
+	p1: 0.7
+	p2: 0.8
+2022-11-17 13:52:41,486 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python train_standalone.py --p1=0.7 --p2=0.8
+wandb: Currently logged in as: mridulav (use `wandb login --relogin` to force relogin)
+wandb: WARNING Ignored wandb.init() arg project when running a sweep.
+2022-11-17 13:52:46,499 - wandb.wandb_agent - INFO - Running runs: ['2gjkjlv2']
+wandb: wandb version 0.13.5 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.12.11
+wandb: Run data is saved locally in /home2/txlx81/new_repos/temp_test/kaokore-visapp/wandb/run-20221117_135244-2gjkjlv2
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Resuming run polished-sweep-8
+wandb: ⭐️ View project at https://wandb.ai/mridulav/stcluster-classifier-sweep
+wandb: 🧹 View sweep at https://wandb.ai/mridulav/stcluster-classifier-sweep/sweeps/a4l780jm
+wandb: 🚀 View run at https://wandb.ai/mridulav/stcluster-classifier-sweep/runs/2gjkjlv2
+wandb: WARNING Ignored wandb.init() arg project when running a sweep.
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/utils/data/dataloader.py:478: UserWarning: This DataLoader will create 8 worker processes in total. Our suggested max number of worker in current system is 4, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/pytorch_lightning/trainer/connectors/callback_connector.py:96: LightningDeprecationWarning: Setting `Trainer(progress_bar_refresh_rate=0)` is deprecated in v1.5 and will be removed in v1.7. Please pass `pytorch_lightning.callbacks.progress.TQDMProgressBar` with `refresh_rate` directly to the Trainer's `callbacks` argument instead. Or, to disable the progress bar pass `enable_progress_bar = False` to the Trainer.
+  rank_zero_deprecation(
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+Global seed set to 42
+wandb: Waiting for W&B process to finish... (failed 1). Press Control-C to abort syncing.
+wandb: - 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: \ 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: | 0.000 MB of 0.000 MB uploaded (0.000 MB deduped)wandb: / 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: \ 0.000 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: | 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: / 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: \ 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: | 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: / 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: - 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb: \ 0.002 MB of 0.002 MB uploaded (0.000 MB deduped)wandb:                                                                                
+wandb: Synced polished-sweep-8: https://wandb.ai/mridulav/stcluster-classifier-sweep/runs/2gjkjlv2
+wandb: Synced 3 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20221117_135244-2gjkjlv2/logs
+Traceback (most recent call last):
+  File "train_standalone.py", line 272, in <module>
+    train()
+  File "train_standalone.py", line 239, in train
+    classifier_model = train_model(Classifier,
+  File "train_standalone.py", line 179, in train_model
+    model = model_class(**kwargs)
+  File "train_standalone.py", line 42, in __init__
+    self.model = AttnVGG(self.hparams.num_classes,
+  File "/home2/txlx81/new_repos/temp_test/kaokore-visapp/model.py", line 44, in __init__
+    self.dropout = nn.Dropout(self.p)
+  File "/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/nn/modules/dropout.py", line 14, in __init__
+    if p < 0 or p > 1:
+TypeError: '<' not supported between instances of 'str' and 'int'
+Traceback (most recent call last):
+  File "train_standalone.py", line 272, in <module>
+    train()
+  File "train_standalone.py", line 239, in train
+    classifier_model = train_model(Classifier,
+  File "train_standalone.py", line 179, in train_model
+    model = model_class(**kwargs)
+  File "train_standalone.py", line 42, in __init__
+    self.model = AttnVGG(self.hparams.num_classes,
+  File "/home2/txlx81/new_repos/temp_test/kaokore-visapp/model.py", line 44, in __init__
+    self.dropout = nn.Dropout(self.p)
+  File "/home2/txlx81/new_repos/mv_test1/lib/python3.8/site-packages/torch/nn/modules/dropout.py", line 14, in __init__
+    if p < 0 or p > 1:
+TypeError: '<' not supported between instances of 'str' and 'int'
+2022-11-17 13:52:56,827 - wandb.wandb_agent - ERROR - Detected 5 failed runs in a row, shutting down.
+2022-11-17 13:52:56,828 - wandb.wandb_agent - INFO - To change this value set WANDB_AGENT_MAX_INITIAL_FAILURES=val
+wandb: Terminating and syncing runs. Press ctrl-c to kill.
