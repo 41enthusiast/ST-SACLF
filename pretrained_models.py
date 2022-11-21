@@ -275,7 +275,6 @@ class IntResNet(ResNet):
             if l == output_layer:
                 break
         self.layers = OrderedDict(zip(self._layers,[getattr(self,l) for l in self._layers]))
-        print(self.layers.keys())
 
         for lyr in self.layers:
           if lyr in output_layers:

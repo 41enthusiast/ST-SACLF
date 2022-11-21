@@ -1,0 +1,180 @@
+0.1 0.4
+Loading train
+Loading val
+Loading test
+starting train
+Initializing model and train,val,test setup
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Initializing model and train,val,test setup
+Collecting test results
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      test_accuracy         0.7844029664993286
+         test_f1            0.7053530216217041
+        test_loss           0.6195734143257141
+     test_precision         0.7202697992324829
+       test_recall          0.6949310302734375
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Finished
+0.1 0.5
+Loading train
+Loading val
+Loading test
+starting train
+Initializing model and train,val,test setup
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Initializing model and train,val,test setup
+Collecting test results
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      test_accuracy         0.8106242418289185
+         test_f1            0.7257911562919617
+        test_loss           0.5827165246009827
+     test_precision         0.7476060390472412
+       test_recall          0.7091714143753052
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Finished
+0.1 0.1
+Loading train
+Loading val
+Loading test
+starting train
+Initializing model and train,val,test setup
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Initializing model and train,val,test setup
+Collecting test results
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      test_accuracy         0.8102650046348572
+         test_f1            0.7343950271606445
+        test_loss           0.6265823841094971
+     test_precision         0.7569091320037842
+       test_recall          0.7170684337615967
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Finished
+0.1 0.2
+Loading train
+Loading val
+Loading test
+starting train
+Initializing model and train,val,test setup
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Initializing model and train,val,test setup
+Collecting test results
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       Test metric             DataLoader 0
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+      test_accuracy         0.7952187657356262
+         test_f1             0.719002902507782
+        test_loss           0.6433220505714417
+     test_precision         0.7305221557617188
+       test_recall          0.7092894315719604
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Finished
+0.1 0.3
+Loading train
+Loading val
+Loading test
+starting train
+Initializing model and train,val,test setup
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results
+Collecting val results

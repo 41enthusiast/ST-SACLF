@@ -1,37 +1,37 @@
 wandb: Starting wandb agent 🕵️
-2022-11-21 14:41:37,320 - wandb.wandb_agent - INFO - Running runs: []
-2022-11-21 14:41:37,627 - wandb.wandb_agent - INFO - Agent received command: run
-2022-11-21 14:41:37,627 - wandb.wandb_agent - INFO - Agent starting run with config:
+2022-11-21 15:14:49,000 - wandb.wandb_agent - INFO - Running runs: []
+2022-11-21 15:14:49,300 - wandb.wandb_agent - INFO - Agent received command: run
+2022-11-21 15:14:49,300 - wandb.wandb_agent - INFO - Agent starting run with config:
 	p1: 0.1
-	p2: 0.1
-2022-11-21 14:41:37,634 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python train_standalone.py --p1=0.1 --p2=0.1
-2022-11-21 14:41:42,644 - wandb.wandb_agent - INFO - Running runs: ['4ubg9mhv']
+	p2: 0.4
+2022-11-21 15:14:49,304 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python temp_sweep_code/train_standalone3.py --p1=0.1 --p2=0.4
 Traceback (most recent call last):
-  File "train_standalone.py", line 3, in <module>
-    from pretrained_models import VggN, Vgg16
-ImportError: cannot import name 'Vgg16' from 'pretrained_models' (/home2/txlx81/new_repos/temp_test/kaokore-visapp/pretrained_models.py)
-2022-11-21 14:41:58,196 - wandb.wandb_agent - INFO - Cleaning up finished run: 4ubg9mhv
-2022-11-21 14:41:58,486 - wandb.wandb_agent - INFO - Agent received command: run
-2022-11-21 14:41:58,486 - wandb.wandb_agent - INFO - Agent starting run with config:
+  File "temp_sweep_code/train_standalone3.py", line 1, in <module>
+    from ... import model, pretrained_models, utils, dataset_processing
+ImportError: attempted relative import with no known parent package
+2022-11-21 15:14:54,318 - wandb.wandb_agent - INFO - Running runs: ['qomuqlv1']
+2022-11-21 15:14:54,319 - wandb.wandb_agent - INFO - Cleaning up finished run: qomuqlv1
+2022-11-21 15:14:54,633 - wandb.wandb_agent - INFO - Agent received command: run
+2022-11-21 15:14:54,633 - wandb.wandb_agent - INFO - Agent starting run with config:
 	p1: 0.1
-	p2: 0.2
-2022-11-21 14:41:58,491 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python train_standalone.py --p1=0.1 --p2=0.2
+	p2: 0.5
+2022-11-21 15:14:54,637 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python temp_sweep_code/train_standalone3.py --p1=0.1 --p2=0.5
 Traceback (most recent call last):
-  File "train_standalone.py", line 3, in <module>
-    from pretrained_models import VggN, Vgg16
-ImportError: cannot import name 'Vgg16' from 'pretrained_models' (/home2/txlx81/new_repos/temp_test/kaokore-visapp/pretrained_models.py)
-2022-11-21 14:42:03,504 - wandb.wandb_agent - INFO - Running runs: ['r1002mpd']
-2022-11-21 14:42:03,505 - wandb.wandb_agent - INFO - Cleaning up finished run: r1002mpd
-2022-11-21 14:42:03,785 - wandb.wandb_agent - INFO - Agent received command: run
-2022-11-21 14:42:03,785 - wandb.wandb_agent - INFO - Agent starting run with config:
+  File "temp_sweep_code/train_standalone3.py", line 1, in <module>
+    from ... import model, pretrained_models, utils, dataset_processing
+ImportError: attempted relative import with no known parent package
+2022-11-21 15:14:59,651 - wandb.wandb_agent - INFO - Running runs: ['tmi9u19d']
+2022-11-21 15:14:59,652 - wandb.wandb_agent - INFO - Cleaning up finished run: tmi9u19d
+2022-11-21 15:14:59,940 - wandb.wandb_agent - INFO - Agent received command: run
+2022-11-21 15:14:59,941 - wandb.wandb_agent - INFO - Agent starting run with config:
 	p1: 0.1
-	p2: 0.3
-2022-11-21 14:42:03,789 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python train_standalone.py --p1=0.1 --p2=0.3
+	p2: 0.6
+2022-11-21 15:14:59,945 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python temp_sweep_code/train_standalone3.py --p1=0.1 --p2=0.6
 Traceback (most recent call last):
-  File "train_standalone.py", line 3, in <module>
-    from pretrained_models import VggN, Vgg16
-ImportError: cannot import name 'Vgg16' from 'pretrained_models' (/home2/txlx81/new_repos/temp_test/kaokore-visapp/pretrained_models.py)
-2022-11-21 14:42:08,803 - wandb.wandb_agent - INFO - Running runs: ['csivka8p']
-2022-11-21 14:42:08,804 - wandb.wandb_agent - ERROR - Detected 3 failed runs in the first 60 seconds, shutting down.
-2022-11-21 14:42:08,804 - wandb.wandb_agent - INFO - To disable this check set WANDB_AGENT_DISABLE_FLAPPING=true
+  File "temp_sweep_code/train_standalone3.py", line 1, in <module>
+    from ... import model, pretrained_models, utils, dataset_processing
+ImportError: attempted relative import with no known parent package
+2022-11-21 15:15:04,958 - wandb.wandb_agent - INFO - Running runs: ['d3i3skq3']
+2022-11-21 15:15:04,959 - wandb.wandb_agent - ERROR - Detected 3 failed runs in the first 60 seconds, shutting down.
+2022-11-21 15:15:04,959 - wandb.wandb_agent - INFO - To disable this check set WANDB_AGENT_DISABLE_FLAPPING=true
 wandb: Terminating and syncing runs. Press ctrl-c to kill.

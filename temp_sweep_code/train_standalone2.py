@@ -1,20 +1,26 @@
-from ... import model, pretrained_models, utils, dataset_processing
+import os, sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
+
+import dataset_processing
+import model
+import pretrained_models
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import wandb
 from pytorch_lightning.loggers import WandbLogger
 from torch import optim
-import time
+import utils
 from torchmetrics.functional import precision_recall, f1_score
 from typing import List
 from torchvision.utils import make_grid
-from torch.utils.data import ConcatDataset, WeightedRandomSampler
+from torch.utils.data import ConcatDataset, DataLoader
 import gc
 from torch import nn
 import torch
-import os
-from torch.utils.data import DataLoader, ImageFolder
 from torchvision import transforms
+from torchvision.datasets import ImageFolder
 
 
 class Classifier(pl.LightningModule):
@@ -273,7 +279,7 @@ def train(config = None):
 if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     DATASET = 'kaokore'
-    BATCH_SIZE = 48
+    BATCH_SIZE = 32
     NUM_WORKERS = 8
     EPOCHS = 20
     #EXPERIMENT_NAME = f'hyperparam-sweep-kaokore-vgg16-p1c-{p1}-p2r-{p2}'

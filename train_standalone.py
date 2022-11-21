@@ -1,6 +1,6 @@
 from dataset_processing.pacs import *
 from model import AttnVGG
-from pretrained_models import VggN, Vgg16
+from pretrained_models import VggN
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import wandb

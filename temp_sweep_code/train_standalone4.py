@@ -1,6 +1,11 @@
+import os, sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
+
 from dataset_processing.pacs import *
-from model import AttnVGG
-from pretrained_models import VggN, Vgg16
+from model import AttnResNet
+from pretrained_models import ResNetN
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import wandb
@@ -39,9 +44,9 @@ class Classifier(pl.LightningModule):
         super().__init__()
         print('Initializing model and train,val,test setup')
         self.save_hyperparameters()
-        self.model = AttnVGG(self.hparams.num_classes,
-                             #Vgg16([2, 9, 22, 30], False),
-                             VggN([1, 8, 22, 29], 'vgg16'),
+        self.model = AttnResNet(self.hparams.num_classes,
+                             ResNetN('resnet34','avgpool',
+                              ['conv1', 'layer2','layer3','layer4']),
                              self.hparams.dropout_type,
                              self.hparams.dropout_p)
         if self.hparams.loss_fn == 'focal_loss':
@@ -273,7 +278,7 @@ def train(config = None):
 if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     DATASET = 'kaokore'
-    BATCH_SIZE = 48
+    BATCH_SIZE = 32
     NUM_WORKERS = 8
     EPOCHS = 20
     #EXPERIMENT_NAME = f'hyperparam-sweep-kaokore-vgg16-p1c-{p1}-p2r-{p2}'

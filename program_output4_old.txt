@@ -1,13 +1,10 @@
-0.4 0.6
+0.1 0.1
 Loading train
 Loading val
 Loading test
 starting train
 Initializing model and train,val,test setup
-Collecting val results
-Collecting val results
-Collecting val results
-Collecting val results
+['conv1', 'bn1', 'relu', 'maxpool', 'layer1', 'layer2', 'layer3', 'layer4', 'avgpool']
 Collecting val results
 Collecting val results
 Collecting val results
