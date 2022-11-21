@@ -13,7 +13,7 @@ from torchvision.models import vgg16
 VGG-16 with attention
 """
 class AttnVGG(nn.Module): #the vgg n densnet versions
-    def __init__(self, num_classes, backbone: Vgg16, dropout_mode, p, attention=True, normalize_attn=True, model_subtype = 'vgg16'):
+    def __init__(self, num_classes, backbone: VggN, dropout_mode, p, attention=True, normalize_attn=True, model_subtype = 'vgg16'):
         super(AttnVGG, self).__init__()
 
         self.pretrained = backbone
@@ -96,44 +96,23 @@ class AttnVGG(nn.Module): #the vgg n densnet versions
 
 
 
-class AttnResnet(nn.Module): #the vgg n densnet versions
-    def __init__(self, num_classes, output_layers, dropout_mode, p, attention=True, normalize_attn=True):
-        super(AttnResnet, self).__init__()
+class AttnResNet(nn.Module): #the vgg n densnet versions
+    def __init__(self, num_classes, backbone:ResNetN, dropout_mode, p, attention=True, normalize_attn=True):
+        super(AttnResNet, self).__init__()
         # conv blocks
-        self.pretrained = models.resnet50(True)
-
-        # Freeze Parameters
-        #for param in self.pretrained.parameters():
-        #    param.requires_grad = False
+        self.pretrained = backbone
 
         self.fhooks = []
         self.selected_out = OrderedDict()
-        #self.pretrained.avgpool = nn.Conv2d(in_channels=2048, out_channels=512, kernel_size=1, padding=0,
-        #                       bias=True)
-        self.dense = nn.Conv2d(in_channels=2048, out_channels=512, kernel_size=1, padding=0,
-                               bias=True)
-
-        for i in output_layers:
-            lyr = None
-            lyr_name = []
-            temp_model = self.pretrained
-            m_list = list(temp_model._modules.keys())
-            for j in i.split('.')[:-1]:
-                lyr = getattr(temp_model, m_list[int(j)])
-                lyr_name.append(m_list[int(j)])
-                temp_model = lyr
-                m_list = list(temp_model._modules.keys())
-            lyr = getattr(temp_model, m_list[int(i.split('.')[-1])])
-            lyr_name.append(m_list[int(i.split('.')[-1])])
-            self.fhooks.append(lyr.register_forward_hook(self.forward_hook('_'.join(lyr_name))))
-        self.fhooks.append(self.pretrained.avgpool.register_forward_hook(self.forward_hook('out')))
 
         # attention blocks
         self.attention = attention
         if self.attention:
-            self.projector0 = ProjectorBlock(64, 512)
-            self.projector1 = ProjectorBlock(256, 512)
-            self.projector2 = ProjectorBlock(256, 512)
+
+            self.project_ins = backbone.project_ins
+            for i,p_name in enumerate(['projector0', 'projector1', 'projector2', 'projector3']):
+                if backbone.project_ins[i] != 512:
+                    setattr(self, p_name, ProjectorBlock(backbone.project_ins[i], 512))
 
             self.attn0 = SpatialAttn(in_features=512, normalize_attn=normalize_attn)# (batch_size,1,H,W), (batch_size,C)
             self.attn1 = SpatialAttn(in_features=512, normalize_attn=normalize_attn)
@@ -163,45 +142,43 @@ class AttnResnet(nn.Module): #the vgg n densnet versions
         return hook
 
     def forward(self, x):
-        out = self.pretrained(x)
 
-        l0, l1, l2, l3, out = self.selected_out.values()
-        g =self.dense(out) # batch_sizex512x1x1
-        #print(g.shape, l0.shape, l1.shape, l2.shape, l3.shape)
+        l0, l1, l2, l3, g = self.pretrained(x)
 
         # attention
         if self.attention:
-            c0, g0 = self.attn0(self.projector0(l0), g)
-            c1, g1 = self.attn1(self.projector1(l1), g)#this gets it to the same out ch as the next 2 layers
-            c2, g2 = self.attn2(self.projector2(l2), g)
-            c3, g3 = self.attn3(l3, g)
-            g = torch.cat((g0, g1,g2,g3), dim=1) # batch_sizex3C
+            for i in range(4):
+                if hasattr(self,f'projector{i}'):
+                    locals()[f'c{i}'], locals()[f'g{i}'] = getattr(self,f'attn{i}')(getattr(self,f'projector{i}')(locals()[f'l{i}']), g)
+                else:
+                    locals()[f'c{i}'], locals()[f'g{i}'] = getattr(self,f'attn{i}')(locals()[f'l{i}'], g)
+            
+            all_locals = locals()
+            global_feats = [all_locals[f'g{i}'] for i in range(4)]
+            attn_maps = [all_locals[f'c{i}'] for i in range(4)]
+            g = torch.cat(global_feats, dim=1) # batch_sizex3C
 
             # fc layer
-            out = torch.relu(self.fc1(g))  # batch_sizexnum_classes
-            # print(out.shape)
+            out = torch.relu(self.fc1(g)) # batch_sizexnum_classes
 
             if self.dropout_mode == 'dropout':
                 out = self.dropout(out)
             elif self.dropout_mode == 'dropconnect':
                 out = self.dropout(out, self.p, self.training)
 
-            # classification layer
-            out = self.classify(out) # batch_sizexnum_classes
         else:
-            c0, c1, c2, c3 = None, None, None
-
-
+            attn_maps = [None, None, None, None]
+            out = self.fc1(torch.squeeze(g))
 
             if self.dropout_mode == 'dropout':
                 out = self.dropout(out)
             elif self.dropout_mode == 'dropconnect':
                 out = self.dropout(out, self.p, self.training)
 
-            out = self.classify(torch.squeeze(g))
-        return [out, c0, c1, c2, c3]
+        out = self.classify(out)
+        return [out,]+ attn_maps
 
-
+        
 #MULTITASK MODELS - model constructs itself from the task flows
 
 

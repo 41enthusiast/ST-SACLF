@@ -1,8 +1,37 @@
-wandb: Creating sweep from: train_prob_sweep.yaml
-wandb: Created sweep with ID: mzypl0tq
-wandb: View sweep at: https://wandb.ai/mridulav/stcluster-classifier-sweep/sweeps/mzypl0tq
-wandb: Run sweep agent with: wandb agent mridulav/stcluster-classifier-sweep/mzypl0tq
 wandb: Starting wandb agent 🕵️
-wandb: ERROR Error while calling W&B API: name required for project query (<Response [400]>)
-wandb: ERROR Find detailed error logs at: /home2/txlx81/new_repos/temp_test/kaokore-visapp/wandb/debug-cli.log
-Error: <Response [400]>
+2022-11-21 14:41:37,320 - wandb.wandb_agent - INFO - Running runs: []
+2022-11-21 14:41:37,627 - wandb.wandb_agent - INFO - Agent received command: run
+2022-11-21 14:41:37,627 - wandb.wandb_agent - INFO - Agent starting run with config:
+	p1: 0.1
+	p2: 0.1
+2022-11-21 14:41:37,634 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python train_standalone.py --p1=0.1 --p2=0.1
+2022-11-21 14:41:42,644 - wandb.wandb_agent - INFO - Running runs: ['4ubg9mhv']
+Traceback (most recent call last):
+  File "train_standalone.py", line 3, in <module>
+    from pretrained_models import VggN, Vgg16
+ImportError: cannot import name 'Vgg16' from 'pretrained_models' (/home2/txlx81/new_repos/temp_test/kaokore-visapp/pretrained_models.py)
+2022-11-21 14:41:58,196 - wandb.wandb_agent - INFO - Cleaning up finished run: 4ubg9mhv
+2022-11-21 14:41:58,486 - wandb.wandb_agent - INFO - Agent received command: run
+2022-11-21 14:41:58,486 - wandb.wandb_agent - INFO - Agent starting run with config:
+	p1: 0.1
+	p2: 0.2
+2022-11-21 14:41:58,491 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python train_standalone.py --p1=0.1 --p2=0.2
+Traceback (most recent call last):
+  File "train_standalone.py", line 3, in <module>
+    from pretrained_models import VggN, Vgg16
+ImportError: cannot import name 'Vgg16' from 'pretrained_models' (/home2/txlx81/new_repos/temp_test/kaokore-visapp/pretrained_models.py)
+2022-11-21 14:42:03,504 - wandb.wandb_agent - INFO - Running runs: ['r1002mpd']
+2022-11-21 14:42:03,505 - wandb.wandb_agent - INFO - Cleaning up finished run: r1002mpd
+2022-11-21 14:42:03,785 - wandb.wandb_agent - INFO - Agent received command: run
+2022-11-21 14:42:03,785 - wandb.wandb_agent - INFO - Agent starting run with config:
+	p1: 0.1
+	p2: 0.3
+2022-11-21 14:42:03,789 - wandb.wandb_agent - INFO - About to run command: /usr/bin/env python train_standalone.py --p1=0.1 --p2=0.3
+Traceback (most recent call last):
+  File "train_standalone.py", line 3, in <module>
+    from pretrained_models import VggN, Vgg16
+ImportError: cannot import name 'Vgg16' from 'pretrained_models' (/home2/txlx81/new_repos/temp_test/kaokore-visapp/pretrained_models.py)
+2022-11-21 14:42:08,803 - wandb.wandb_agent - INFO - Running runs: ['csivka8p']
+2022-11-21 14:42:08,804 - wandb.wandb_agent - ERROR - Detected 3 failed runs in the first 60 seconds, shutting down.
+2022-11-21 14:42:08,804 - wandb.wandb_agent - INFO - To disable this check set WANDB_AGENT_DISABLE_FLAPPING=true
+wandb: Terminating and syncing runs. Press ctrl-c to kill.

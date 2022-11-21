@@ -40,6 +40,7 @@ class Classifier(pl.LightningModule):
         print('Initializing model and train,val,test setup')
         self.save_hyperparameters()
         self.model = AttnVGG(self.hparams.num_classes,
+                             #Vgg16([2, 9, 22, 30], False),
                              VggN([1, 8, 22, 29], 'vgg16'),
                              self.hparams.dropout_type,
                              self.hparams.dropout_p)

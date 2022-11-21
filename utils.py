@@ -16,6 +16,8 @@ from torch.utils.data import DataLoader, Dataset
 from collections import defaultdict
 import random
 
+from sklearn.metrics import recall_score, precision_score, f1_score
+
 def check_paths(args):
     try:
         if not os.path.exists(args.save_model_dir):
@@ -312,3 +314,13 @@ def stratified_split(dataset : ImageFolder, fractions):
         indices += random_indices_sample
     inputs = torch.utils.data.Subset(dataset, indices)
     return inputs
+
+def get_recall_precision_f1(all_label, all_pred):
+    recall = recall_score(all_label.squeeze().cpu().data.squeeze().numpy(),
+                                   all_pred.cpu().data.squeeze().numpy(), average='macro')
+    precision = precision_score(all_label.squeeze().cpu().data.squeeze().numpy(),
+                                         all_pred.cpu().data.squeeze().numpy(), average='macro')
+    f1 = f1_score(all_label.squeeze().cpu().data.squeeze().numpy(),
+                           all_pred.cpu().data.squeeze().numpy(), average='macro')
+                           
+    return recall, precision, f1

@@ -1,12 +1,9 @@
-from dataset_processing.pacs import *
-from model import AttnVGG
-from pretrained_models import VggN, Vgg16
+from ... import model, pretrained_models, utils, dataset_processing
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import wandb
 from pytorch_lightning.loggers import WandbLogger
 from torch import optim
-from utils import *
 import time
 from torchmetrics.functional import precision_recall, f1_score
 from typing import List
@@ -14,6 +11,10 @@ from torchvision.utils import make_grid
 from torch.utils.data import ConcatDataset, WeightedRandomSampler
 import gc
 from torch import nn
+import torch
+import os
+from torch.utils.data import DataLoader, ImageFolder
+from torchvision import transforms
 
 
 class Classifier(pl.LightningModule):
@@ -39,12 +40,13 @@ class Classifier(pl.LightningModule):
         super().__init__()
         print('Initializing model and train,val,test setup')
         self.save_hyperparameters()
-        self.model = AttnVGG(self.hparams.num_classes,
-                             VggN([1, 8, 22, 29], 'vgg16'),
+        self.model = model.AttnVGG(self.hparams.num_classes,
+                             #Vgg16([2, 9, 22, 30], False),
+                             pretrained_models.VggN([3, 8, 29, 35], 'vgg19'),
                              self.hparams.dropout_type,
                              self.hparams.dropout_p)
         if self.hparams.loss_fn == 'focal_loss':
-            self.criterion = focal_loss(self.hparams.num_classes, 2, 2) #gamma, alpha
+            self.criterion = utils.focal_loss(self.hparams.num_classes, 2, 2) #gamma, alpha
         else:
             self.criterion = nn.CrossEntropyLoss()
         self.optimzer, self.scheduler = self.configure_optimizers()
@@ -218,17 +220,17 @@ def train(config = None):
             label_domain = os.listdir(f'{dataset_root}/pacs_data')[0]
             EXPERIMENT_NAME = 'PACS_indv_domain_train_'+label_domain
             print('Loading train')
-            train_loader, _ = get_domain_dl(label_domain)
+            train_loader, _ = dataset_processing.pacs.get_domain_dl(label_domain)
             print('Loading val')
-            val_loader, _ = get_domain_dl(label_domain, 'crossval')
+            val_loader, _ = dataset_processing.pacs.get_domain_dl(label_domain, 'crossval')
             print('Loading test')
-            test_loader, _ = get_domain_dl(label_domain, 'test')
+            test_loader, _ = dataset_processing.pacs.get_domain_dl(label_domain, 'test')
             class_names = 'dog  elephant  giraffe  guitar  horse  house  person'.split('  ')
         else:
             
             train_ds = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/train', transform=transform_kaokore)
             print(float(config.p1), float(config.p2))
-            mixed_dataset = stratified_split(ImageFolder(f'{dataset_root}/visapp-data/kaokore_control_v1', transform=transform_kaokore), [float(config.p2), float(config.p2), float(config.p1), float(config.p1)])
+            mixed_dataset = utils.stratified_split(ImageFolder(f'{dataset_root}/visapp-data/kaokore_control_v1', transform=transform_kaokore), [float(config.p2), float(config.p2), float(config.p1), float(config.p1)])
             train_dataset = ConcatDataset([train_ds, mixed_dataset])
 
             val_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/dev', transform=transform_kaokore)
