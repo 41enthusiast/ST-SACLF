@@ -1,5 +1,0 @@
-  0%|          | 0/3 [00:00<?, ?trial/s, best loss=?]                                                     (0.4134388089522797, 0.5786744202519836)
-  0%|          | 0/3 [00:00<?, ?trial/s, best loss=?]                                                     starting train
-  0%|          | 0/3 [00:00<?, ?trial/s, best loss=?]                                                     Initializing model and train,val,test setup
-  0%|          | 0/3 [00:00<?, ?trial/s, best loss=?]                                                     Collecting val results
-  0%|          | 0/3 [00:11<?, ?trial/s, best loss=?]
