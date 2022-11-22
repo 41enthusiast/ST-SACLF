@@ -222,23 +222,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     plt.close('all')
     return read_image('misc/temp_cm_logging.jpg')/255
 
-def focal_loss_non_reduce(n_classes, gamma=2., alpha=4.):
-    gamma = float(gamma)
-    alpha = float(alpha)
-
-    def focal_loss_fixed(y_pred, y):
-        eps = 1e-9
-        pred = torch.softmax(y_pred, dim=1) + eps
-        #pred = y_pred + eps
-        y_true = F.one_hot(y, n_classes)
-        cross_entropy = y_true * -1*torch.log(pred)
-        wt = y_true*(1-pred)**gamma
-        focal_loss = alpha*wt*cross_entropy
-        focal_loss = torch.max(focal_loss, dim=1)
-        return focal_loss
-    return focal_loss_fixed
-
-def get_most_and_least_confident_predictions(model, loader, device , num_classes):
+def get_most_and_least_confident_predictions(model, loader, device):
     # get model prediction for the validation dataset and all images for later use
     preds = torch.tensor([]).to(device)
     tgts = torch.tensor([]).to(device)
@@ -260,15 +244,13 @@ def get_most_and_least_confident_predictions(model, loader, device , num_classes
             (all_images, images.to(device)),
             dim=0
         )
-    print(preds.shape, tgts.shape)
-    criterion = focal_loss_non_reduce(num_classes, 2, 2) #gamma, alpha
-    confidence = criterion(preds, tgts.to(torch.int64))[0]
+    #print(preds.shape, tgts.shape)
+    confidence = F.softmax(preds, dim=1).max(dim=1)[0]
     #print(confidence.shape)
 
     # get indices with most and least confident scores
     lc_scores, least_confident = confidence.topk(4, dim=0)
     mc_scores, most_confident = confidence.topk(4, dim=0, largest=False)
-    print(lc_scores, mc_scores)
 
     # get the images according to confidence scores, 4 each
     mc_imgs = all_images[most_confident.squeeze()]

@@ -12,6 +12,9 @@ from torchmetrics.functional import precision_recall, f1_score
 from typing import List
 from torchvision.utils import make_grid
 from torch.utils.data import ConcatDataset, WeightedRandomSampler
+import gc
+from torch import nn
+
 
 class Classifier(pl.LightningModule):
 
@@ -27,9 +30,11 @@ class Classifier(pl.LightningModule):
                  ):
         """
         Inputs
-            
+            proto_dim - Dimensionality of prototype feature space
             lr - Learning rate of the outer loop Adam optimizer
-            
+            lr_inner - Learning rate of the inner loop SGD optimizer
+            lr_output - Learning rate for the output layer in the inner loop
+            num_inner_steps - Number of inner loop updates to perform
         """
         super().__init__()
         print('Initializing model and train,val,test setup')
@@ -64,7 +69,6 @@ class Classifier(pl.LightningModule):
                     reg_loss = reg_loss + self.hparams.weight_decay * torch.norm(param, 1)
         else:
             reg_loss
-
         loss = self.criterion(preds, labels.squeeze()) + reg_loss
         acc = (preds.argmax(dim=1) == labels).float().mean()
         return loss, preds, acc
@@ -94,7 +98,7 @@ class Classifier(pl.LightningModule):
         self.log_dict({'val_loss': loss.detach(), 'val_accuracy': acc.mean().detach(), 'val_recall': recall.detach(),
                        'val_precision': precision.detach(), 'val_f1': f1_val.detach()})
 
-        return {'val_loss': loss.detach(), 'val_accuracy': acc.mean().detach(), 'val_y': y.detach(), 'val_preds': preds.argmax(dim=1).detach()}
+        return {'val_loss': loss.detach(), 'val_accuracy': acc.mean().detach(), 'val_y': y, 'val_preds': preds.argmax(dim=1)}
 
     def validation_epoch_end(self, step_outputs):
         print('Collecting val results')
@@ -122,6 +126,8 @@ class Classifier(pl.LightningModule):
         self.logger.experiment.log({'Val table': global_val_table})
         self.log_dict(averages)
 
+        #return averages
+
 
     def test_step(self, batch, batch_idx):
         self.model.eval()
@@ -133,7 +139,7 @@ class Classifier(pl.LightningModule):
         self.log_dict({'test_loss': loss.detach(), 'test_accuracy': acc.mean().detach(), 'test_recall': recall.detach(),
                        'test_precision': precision.detach(), 'test_f1': f1_val.detach()})
 
-        return {'test_loss': loss.detach(), 'test_accuracy': acc.mean().detach(), 'test_y': y.detach(), 'test_preds': preds.argmax(dim=1).detach(), 'attention': batch}
+        return {'test_loss': loss.detach(), 'test_accuracy': acc.mean().detach(), 'test_y': y, 'test_preds': preds.argmax(dim=1), 'attention': batch}
 
     def test_epoch_end(self, step_outputs):
         print('Collecting test results')
@@ -159,47 +165,7 @@ class Classifier(pl.LightningModule):
         self.logger.experiment.log({'Test table': global_test_table})
         self.log_dict(averages)
 
-        print('Test visualizations')
-
-        inputs = outputs[0]['attention']
-        #print(inputs.shape)
-        
-        images = inputs[0]#inputs[0:16, :, :, :]
-        I = make_grid(images, nrow=4, normalize=True, scale_each=True)
-        _, c0, c1, c2, c3 = self.model(images)
-        print(I.shape, c0.shape, c1.shape, c2.shape, c3.shape)
-        attn0 = visualize_attn(I, c0)
-        attn1 = visualize_attn(I, c1)
-        attn2 = visualize_attn(I, c2)
-        attn3 = visualize_attn(I, c3)
-
-        viz_table = wandb.Table(
-            columns=['image', 'layer 0', 'low layer', 'middle layer', 'end layer'])
-
-        w_img = wandb.Image(I)
-        w_attn0 = wandb.Image(attn0)
-        w_attn1 = wandb.Image(attn1)
-        w_attn2 = wandb.Image(attn2)
-        w_attn3 = wandb.Image(attn3)
-
-        viz_table.add_data(w_img, w_attn0, w_attn1, w_attn2, w_attn3)
-        self.logger.experiment.log({'Attention visualization': viz_table})
-
-        print('Making the confusion matrix')
-        cm = make_confusion_matrix(self.model, self.hparams.num_classes, test_loader, device)
-        cm_img = plot_confusion_matrix(cm, self.hparams.class_names)
-        w_cm = wandb.Image(cm_img)
-
-        # log most and least confident images
-        print('Logging the most and least confident images')
-        (lc_scores, lc_imgs), (mc_scores, mc_imgs) = get_most_and_least_confident_predictions(self.model,
-                                                                                                test_loader, self.device, self.hparams.num_classes)
-        w_lc = wandb.Image(make_grid(lc_imgs, nrow=4, normalize=True, scale_each=True))
-        w_mc = wandb.Image(make_grid(mc_imgs, nrow=4, normalize=True, scale_each=True))
-
-        self.logger.experiment.log({'Confusion Matrix': w_cm, 'Least Confident Images': w_lc, 'Most Confident Images': w_mc})
-
-        return averages
+        #return averages
 
 
 def train_model(model_class, train_loader, val_loader, test_loader, epochs, **kwargs):
@@ -210,7 +176,7 @@ def train_model(model_class, train_loader, val_loader, test_loader, epochs, **kw
                          max_epochs=epochs,
                          callbacks=[ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_acc"),
                                     LearningRateMonitor("epoch")],
-                         )
+                         progress_bar_refresh_rate=0)
     trainer.logger._default_hp_metric = None
 
     # Check whether pretrained model exists. If yes, load it and skip training
@@ -232,70 +198,58 @@ def train_model(model_class, train_loader, val_loader, test_loader, epochs, **kw
 
     # Training constant (same as for ProtoNet)
 
-
-if __name__ == '__main__':
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    DATASET = 'kaokore'
-    BATCH_SIZE = 16
-    NUM_WORKERS = 8
-    EPOCHS = 20
-    p1, p2 = [1e-6, 1e-6]
-    EXPERIMENT_NAME = f'control-kaokore-vgg16-p1c-{p1}-p2r-{p2}'
-    dataset_root = '..'
-    #style_path = '../../visapp-data/fst-kaokore-ohem' #'data/kaokore-stylized'
-    #style_path = '../visapp-data/fst-kaokore-ohem'
+def train(config = None):
 
     transform_kaokore = transforms.Compose([
             transforms.Resize((256,256)),
             transforms.ToTensor(),
+            ])
+
+    # transform_basic = transforms.Compose([
+    #         transforms.Resize((256,256)),
+    #         transforms.ToTensor(),
+    #         transforms.RandomHorizontalFlip(p=0.5),
+    #         transforms.RandomPerspective(distortion_scale=0.6, p=0.5),
+    #         transforms.RandomCrop((256,256)) #this can be jank
+    #     ])
+    with wandb.init(config=config, project = 'stcluster-classifier-sweep'):
+        config = wandb.config
+        if DATASET == 'pacs':
+            label_domain = os.listdir(f'{dataset_root}/pacs_data')[0]
+            EXPERIMENT_NAME = 'PACS_indv_domain_train_'+label_domain
+            print('Loading train')
+            train_loader, _ = get_domain_dl(label_domain)
+            print('Loading val')
+            val_loader, _ = get_domain_dl(label_domain, 'crossval')
+            print('Loading test')
+            test_loader, _ = get_domain_dl(label_domain, 'test')
+            class_names = 'dog  elephant  giraffe  guitar  horse  house  person'.split('  ')
+        else:
             
-        ])
+            train_ds = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/train', transform=transform_kaokore)
+            print(float(config.p1), float(config.p2))
+            mixed_dataset = stratified_split(ImageFolder(f'{dataset_root}/visapp-data/kaokore_control_v1', transform=transform_kaokore), [float(config.p2), float(config.p2), float(config.p1), float(config.p1)])
+            train_dataset = ConcatDataset([train_ds, mixed_dataset])
 
-    transform_basic = transforms.Compose([
-            transforms.Resize((256,256)),
-            transforms.ToTensor(),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomPerspective(distortion_scale=0.6, p=0.5),
-            transforms.RandomCrop((256,256)) 
-            
-        ])
+            val_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/dev', transform=transform_kaokore)
+            test_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/test', transform=transform_kaokore)
 
-    if DATASET == 'pacs':
-        label_domain = os.listdir(f'{dataset_root}/pacs_data')[0]
-        EXPERIMENT_NAME = 'PACS_indv_domain_train_'+label_domain
-        print('Loading train')
-        train_loader, _ = get_domain_dl(label_domain)
-        print('Loading val')
-        val_loader, _ = get_domain_dl(label_domain, 'crossval')
-        print('Loading test')
-        test_loader, _ = get_domain_dl(label_domain, 'test')
-        class_names = 'dog  elephant  giraffe  guitar  horse  house  person'.split('  ')
-    else:
-        
-        train_ds = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/train', transform=transform_kaokore)
-        
-        print(p1,p2)
-        mixed_dataset = stratified_split(ImageFolder(f'{dataset_root}/kaokore_control_v1', transform=transform_kaokore), [p2, p2, p1, p1])
-        train_dataset = ConcatDataset([train_ds, mixed_dataset])
+            print('Loading train')
+            train_loader = DataLoader(train_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS,
+                                        shuffle=True)
+            print('Loading val')
+            val_loader = DataLoader(val_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
+            print('Loading test')
+            test_loader = DataLoader(test_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
+            class_names = 'commoner  incarnation  noble  warrior'.split('  ')
         
 
-        val_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/dev', transform=transform_kaokore)
-        test_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/test', transform=transform_kaokore)
+        print('starting train')
 
-        print('Loading train')
-        train_loader = DataLoader(train_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS,
-                                    shuffle=True
-                                    )
-        print('Loading val')
-        val_loader = DataLoader(val_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
-        print('Loading test')
-        test_loader = DataLoader(test_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
-        class_names = 'commoner  incarnation  noble  warrior'.split('  ')
-    wandb_logger = WandbLogger(project = 'stcluster-classifier')
+        gc.collect()
+        torch.cuda.empty_cache()
 
-    print('starting train')
-    classifier_model = train_model(Classifier,
+        classifier_model = train_model(Classifier,
                                     lr=0.0008,
                                     train_loader=train_loader,
                                     val_loader=val_loader,
@@ -310,6 +264,25 @@ if __name__ == '__main__':
                                     regularization_type= 'L2',
                                     weight_decay=0.0004,
                                     dataset_used = DATASET
-                                  )
-    print('Finished')
+                                    )
+    gc.collect()
+    torch.cuda.empty_cache()
     
+
+if __name__ == '__main__':
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    DATASET = 'kaokore'
+    BATCH_SIZE = 48
+    NUM_WORKERS = 8
+    EPOCHS = 20
+    #EXPERIMENT_NAME = f'hyperparam-sweep-kaokore-vgg16-p1c-{p1}-p2r-{p2}'
+    dataset_root = '../..'
+
+    wandb_logger = WandbLogger(project = 'stcluster-classifier-sweep')
+    
+    
+
+    train()
+
+    print('Finished')
+

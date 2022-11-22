@@ -1,6 +1,8 @@
+import torch.cuda
+
 from dataset_processing.pacs import *
 from model import AttnVGG
-from pretrained_models import VggN
+from pretrained_models import Vgg, Vgg16
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 import wandb
@@ -12,11 +14,13 @@ from torchmetrics.functional import precision_recall, f1_score
 from typing import List
 from torchvision.utils import make_grid
 from torch.utils.data import ConcatDataset, WeightedRandomSampler
+from hyperopt import hp, tpe, fmin, STATUS_OK
 
 class Classifier(pl.LightningModule):
 
     def __init__(self, lr,
-                 loss_fn='focal_loss',
+                 gamma=2,
+                 alpha=2,
                  dropout_type='dropout',
                  dropout_p=0.2,
                  num_classes=4,
@@ -27,27 +31,28 @@ class Classifier(pl.LightningModule):
                  ):
         """
         Inputs
-            
+            proto_dim - Dimensionality of prototype feature space
             lr - Learning rate of the outer loop Adam optimizer
-            
+            lr_inner - Learning rate of the inner loop SGD optimizer
+            lr_output - Learning rate for the output layer in the inner loop
+            num_inner_steps - Number of inner loop updates to perform
         """
         super().__init__()
         print('Initializing model and train,val,test setup')
         self.save_hyperparameters()
         self.model = AttnVGG(self.hparams.num_classes,
-                             VggN([1, 8, 22, 29], 'vgg16'),
+                             Vgg16([2, 9, 22, 30]),#Vgg([2, 9, 22, 30]),
                              self.hparams.dropout_type,
                              self.hparams.dropout_p)
-        if self.hparams.loss_fn == 'focal_loss':
-            self.criterion = focal_loss(self.hparams.num_classes, 2, 2) #gamma, alpha
-        else:
-            self.criterion = nn.CrossEntropyLoss()
-        self.optimzer, self.scheduler = self.configure_optimizers()
+        self.criterion = focal_loss(self.hparams.num_classes, self.hparams.gamma, self.hparams.alpha)  # 2, 2)
+        self.optimzer = self.configure_optimizers()
+        self.hyperparameter_optimization_val = 0.0
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.hparams.lr)
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[10, 15], gamma=0.1)
-        return [optimizer], [scheduler]
+        # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[140, 180], gamma=0.1)
+        # return [optimizer], [scheduler]
+        return optimizer
 
     def run_model(self, model, imgs, labels):
         # Execute a model with given output layer weights and inputs
@@ -65,7 +70,7 @@ class Classifier(pl.LightningModule):
         else:
             reg_loss
 
-        loss = self.criterion(preds, labels.squeeze()) + reg_loss
+        loss = self.criterion(labels.squeeze(), preds) + reg_loss
         acc = (preds.argmax(dim=1) == labels).float().mean()
         return loss, preds, acc
 
@@ -73,7 +78,9 @@ class Classifier(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        loss, _, acc = self.run_model(self.model, x, y)
+        if self.hparams.dataset_used == 'pacs':
+            y= y-1
+        loss, preds, acc = self.run_model(self.model, x, y)
 
         self.log('train_loss', loss.detach(), on_epoch=True)
         self.log('train_acc', acc.detach(), on_epoch=True)
@@ -94,7 +101,8 @@ class Classifier(pl.LightningModule):
         self.log_dict({'val_loss': loss.detach(), 'val_accuracy': acc.mean().detach(), 'val_recall': recall.detach(),
                        'val_precision': precision.detach(), 'val_f1': f1_val.detach()})
 
-        return {'val_loss': loss.detach(), 'val_accuracy': acc.mean().detach(), 'val_y': y.detach(), 'val_preds': preds.argmax(dim=1).detach()}
+        return {'val_loss': loss.detach(), 'val_accuracy': acc.mean().detach(), 'val_recall': recall.detach(),
+                'val_precision': precision.detach(), 'val_f1': f1_val.detach()}
 
     def validation_epoch_end(self, step_outputs):
         print('Collecting val results')
@@ -103,24 +111,17 @@ class Classifier(pl.LightningModule):
         averages = {}
         averages['val_loss'] = torch.stack([x['val_loss'].float() for x in outputs]).mean()
         averages['val_accuracy'] = torch.stack([x['val_accuracy'].float() for x in outputs]).mean()
-        
-        val_y = torch.cat([x['val_y'].int() for x in outputs])
-        val_preds = torch.cat([x['val_preds'].int() for x in outputs])
-        
-
-        precision, recall = precision_recall(val_preds, val_y, average='macro', num_classes=self.hparams.num_classes)
-        f1_val = f1_score(val_preds, val_y, average='macro', num_classes=self.hparams.num_classes)
-
-        averages['val_recall'] = recall.detach()
-        averages['val_precision'] = precision.detach()
-        averages['val_f1'] = f1_val.detach()
+        averages['val_recall'] = torch.stack([x['val_recall'].float() for x in outputs]).mean()
+        averages['val_precision'] = torch.stack([x['val_precision'].float() for x in outputs]).mean()
+        averages['val_f1'] = torch.stack([x['val_f1'].float() for x in outputs]).mean()
 
         global_val_table = wandb.Table(
-            columns=['loss', 'accuracy', 'recall', 'precision', 'f1 score'])
-        global_val_table.add_data(averages['val_loss'], averages['val_accuracy'],
+            columns=['experiment name', 'loss', 'accuracy', 'recall', 'precision', 'f1 score'])
+        global_val_table.add_data(EXPERIMENT_NAME, averages['val_loss'], averages['val_accuracy'],
                                    averages['val_recall'], averages['val_precision'], averages['val_f1'])
         self.logger.experiment.log({'Val table': global_val_table})
         self.log_dict(averages)
+        HYPEROPT_METRIC = averages['val_accuracy']
 
 
     def test_step(self, batch, batch_idx):
@@ -133,7 +134,8 @@ class Classifier(pl.LightningModule):
         self.log_dict({'test_loss': loss.detach(), 'test_accuracy': acc.mean().detach(), 'test_recall': recall.detach(),
                        'test_precision': precision.detach(), 'test_f1': f1_val.detach()})
 
-        return {'test_loss': loss.detach(), 'test_accuracy': acc.mean().detach(), 'test_y': y.detach(), 'test_preds': preds.argmax(dim=1).detach(), 'attention': batch}
+        return {'test_loss': loss.detach(), 'test_accuracy': acc.mean().detach(), 'test_recall': recall.detach(),
+                'test_precision': precision.detach(), 'test_f1': f1_val.detach(), 'attention': batch}
 
     def test_epoch_end(self, step_outputs):
         print('Collecting test results')
@@ -142,19 +144,13 @@ class Classifier(pl.LightningModule):
         averages = {}
         averages['test_loss'] = torch.stack([x['test_loss'].float() for x in outputs]).mean()
         averages['test_accuracy'] = torch.stack([x['test_accuracy'].float() for x in outputs]).mean()
-
-        test_y = torch.cat([x['test_y'].int() for x in outputs])
-        test_preds = torch.cat([x['test_preds'].int() for x in outputs])
-
-        precision, recall = precision_recall(test_preds, test_y, average='macro', num_classes=self.hparams.num_classes)
-        f1_val = f1_score(test_preds, test_y, average='macro', num_classes=self.hparams.num_classes)
-        averages['test_recall'] = recall.detach()
-        averages['test_precision'] = precision.detach()
-        averages['test_f1'] = f1_val.detach()
+        averages['test_recall'] = torch.stack([x['test_recall'].float() for x in outputs]).mean()
+        averages['test_precision'] = torch.stack([x['test_precision'].float() for x in outputs]).mean()
+        averages['test_f1'] = torch.stack([x['test_f1'].float() for x in outputs]).mean()
 
         global_test_table = wandb.Table(
-            columns=['loss', 'accuracy', 'recall', 'precision', 'f1 score'])
-        global_test_table.add_data(averages['test_loss'], averages['test_accuracy'],
+            columns=['experiment name', 'loss', 'accuracy', 'recall', 'precision', 'f1 score'])
+        global_test_table.add_data(EXPERIMENT_NAME, averages['test_loss'], averages['test_accuracy'],
                                    averages['test_recall'], averages['test_precision'], averages['test_f1'])
         self.logger.experiment.log({'Test table': global_test_table})
         self.log_dict(averages)
@@ -193,7 +189,7 @@ class Classifier(pl.LightningModule):
         # log most and least confident images
         print('Logging the most and least confident images')
         (lc_scores, lc_imgs), (mc_scores, mc_imgs) = get_most_and_least_confident_predictions(self.model,
-                                                                                                test_loader, self.device, self.hparams.num_classes)
+                                                                                                test_loader, self.device)
         w_lc = wandb.Image(make_grid(lc_imgs, nrow=4, normalize=True, scale_each=True))
         w_mc = wandb.Image(make_grid(mc_imgs, nrow=4, normalize=True, scale_each=True))
 
@@ -203,14 +199,15 @@ class Classifier(pl.LightningModule):
 
 
 def train_model(model_class, train_loader, val_loader, test_loader, epochs, **kwargs):
-    trainer = pl.Trainer(default_root_dir=os.path.join('./checkpoints', model_class.__name__),
+    trainer = pl.Trainer(default_root_dir=os.path.join('./checkpoints', Classifier.__name__),
                          logger=wandb_logger,
-                         gpus=1 if str(device) == "cuda:0" else 0,
-                         accelerator='gpu', devices=1,
-                         max_epochs=epochs,
+                         gpus=1 if str(device) == "cuda" else 0,
+                         accelerator='gpu',
+                         max_epochs=EPOCHS,
                          callbacks=[ModelCheckpoint(save_weights_only=True, mode="max", monitor="val_acc"),
-                                    LearningRateMonitor("epoch")],
-                         )
+                                    ],
+                         progress_bar_refresh_rate=0)
+    
     trainer.logger._default_hp_metric = None
 
     # Check whether pretrained model exists. If yes, load it and skip training
@@ -226,90 +223,99 @@ def train_model(model_class, train_loader, val_loader, test_loader, epochs, **kw
         trainer.fit(model, train_loader, val_loader)
         model = model_class.load_from_checkpoint(
             trainer.checkpoint_callback.best_model_path)  # Load best checkpoint after training
-        trainer.test(model,test_loader)
+        #trainer.test(model,test_loader)
 
-    return model
+
+    return model, trainer.logged_metrics['val_acc']
 
     # Training constant (same as for ProtoNet)
 
 
-if __name__ == '__main__':
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+def main(p):
 
+    print(p)
+    train_rep= stratified_split(train_dataset_stylized_rep, p[0])
+    train_rare = stratified_split(train_dataset_stylized_rare, p[1])
+    train_dataset = ConcatDataset([train_ds, train_rep, train_rare])
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False)
+
+    
+
+    print('starting train')
+
+
+    classifier_model, val_acc = train_model(Classifier,
+                                  lr=1e-3,
+                                  train_loader=train_loader,
+                                  val_loader=val_loader,
+                                  test_loader=test_loader,
+                                  epochs=EPOCHS,
+
+                                  gamma=2,
+                                  alpha=2,
+                                  dropout_type='dropout',
+                                  dropout_p=0.2,
+                                  num_classes=4,
+                                  class_names = class_names,
+                                  regularization_type='L1',
+                                  weight_decay=1e-6,
+                                  dataset_used = DATASET
+                                  )
+
+    return {'loss': val_acc, 'status': STATUS_OK}
+
+if __name__ == '__main__':
     DATASET = 'kaokore'
-    BATCH_SIZE = 16
+    BATCH_SIZE = 8
     NUM_WORKERS = 8
-    EPOCHS = 20
-    p1, p2 = [1e-6, 1e-6]
-    EXPERIMENT_NAME = f'control-kaokore-vgg16-p1c-{p1}-p2r-{p2}'
-    dataset_root = '..'
-    #style_path = '../../visapp-data/fst-kaokore-ohem' #'data/kaokore-stylized'
-    #style_path = '../visapp-data/fst-kaokore-ohem'
+    EPOCHS = 1
+    root_path = '..'
+
+    wandb_logger = WandbLogger(project='stcluster-classifier')
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(device)
 
     transform_kaokore = transforms.Compose([
-            transforms.Resize((256,256)),
-            transforms.ToTensor(),
-            
-        ])
-
-    transform_basic = transforms.Compose([
-            transforms.Resize((256,256)),
-            transforms.ToTensor(),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomPerspective(distortion_scale=0.6, p=0.5),
-            transforms.RandomCrop((256,256)) 
-            
-        ])
+        transforms.Resize((256, 256)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    ])
 
     if DATASET == 'pacs':
-        label_domain = os.listdir(f'{dataset_root}/pacs_data')[0]
-        EXPERIMENT_NAME = 'PACS_indv_domain_train_'+label_domain
+        label_domain = os.listdir('data/pacs_data')[0]
+        EXPERIMENT_NAME = 'PACS_kmeans_' + label_domain
         print('Loading train')
-        train_loader, _ = get_domain_dl(label_domain)
+        _, train_ds = get_domain_dl(label_domain)
+        train_dataset_stylized_rare = ImageFolder(root_path + '/pacs-stylized/rare_classes',
+                                                  transform=transforms.ToTensor())
+        train_dataset_stylized_rep = ImageFolder(root_path + '/pacs-stylized/centroid_classes',
+                                                 transform=transforms.ToTensor())
         print('Loading val')
         val_loader, _ = get_domain_dl(label_domain, 'crossval')
         print('Loading test')
         test_loader, _ = get_domain_dl(label_domain, 'test')
         class_names = 'dog  elephant  giraffe  guitar  horse  house  person'.split('  ')
     else:
-        
-        train_ds = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/train', transform=transform_kaokore)
-        
-        print(p1,p2)
-        mixed_dataset = stratified_split(ImageFolder(f'{dataset_root}/kaokore_control_v1', transform=transform_kaokore), [p2, p2, p1, p1])
-        train_dataset = ConcatDataset([train_ds, mixed_dataset])
-        
+        EXPERIMENT_NAME = 'kaokore-vgg16-kmeans'
+        p1 = p2 = 0.5
+        train_ds = ImageFolder(root_path+'/kaokore_imagenet_style/status/train', transform=transform_kaokore)
+        train_dataset_stylized_rare = ImageFolder(root_path+'/kaokore-stylized/rare_classes',
+                                                  transform=transforms.ToTensor())
+        train_dataset_stylized_rep = ImageFolder(root_path+'/kaokore-stylized/centroid_classes',
+                                                 transform=transforms.ToTensor())
 
-        val_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/dev', transform=transform_kaokore)
-        test_dataset = ImageFolder(f'{dataset_root}/kaokore_imagenet_style/status/test', transform=transform_kaokore)
+        val_dataset = ImageFolder(root_path+'/kaokore_imagenet_style/status/dev', transform=transform_kaokore)
+        test_dataset = ImageFolder(root_path+'/kaokore_imagenet_style/status/test', transform=transform_kaokore)
+        val_loader =DataLoader(val_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False)
+        test_loader =DataLoader(test_dataset, batch_size=BATCH_SIZE, num_workers=NUM_WORKERS, shuffle=False)
 
-        print('Loading train')
-        train_loader = DataLoader(train_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS,
-                                    shuffle=True
-                                    )
-        print('Loading val')
-        val_loader = DataLoader(val_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
-        print('Loading test')
-        test_loader = DataLoader(test_dataset, batch_size= BATCH_SIZE, num_workers = NUM_WORKERS, shuffle=False)
         class_names = 'commoner  incarnation  noble  warrior'.split('  ')
-    wandb_logger = WandbLogger(project = 'stcluster-classifier')
 
-    print('starting train')
-    classifier_model = train_model(Classifier,
-                                    lr=0.0008,
-                                    train_loader=train_loader,
-                                    val_loader=val_loader,
-                                    test_loader=test_loader,
-                                    epochs=EPOCHS,
 
-                                    loss_fn = 'focal_loss',
-                                    dropout_type='dropout',
-                                    dropout_p=0.23,
-                                    num_classes=len(class_names),
-                                    class_names = class_names,
-                                    regularization_type= 'L2',
-                                    weight_decay=0.0004,
-                                    dataset_used = DATASET
-                                  )
-    print('Finished')
-    
+
+    best = fmin(fn=main,
+                space=[hp.uniform('p1', 1e-6, 1.0),
+                       hp.uniform('p2', 1e-6, 1.0)],
+                algo=tpe.suggest,
+                max_evals=3)
+    print(best)
