@@ -93,22 +93,6 @@ writer = SummaryWriter(log_dir=str(log_dir))
 decoder = net.decoder
 vgg = net.vgg
 
-# vgg_keys = ['0.weight', '0.bias', '3.weight', '3.bias', '7.weight', '7.bias', '10.weight', '10.bias', '14.weight', '14.bias', '17.weight', '17.bias', '20.weight', '20.bias', '23.weight', '23.bias', '27.weight', '27.bias', '30.weight', '30.bias', '33.weight', '33.bias', '36.weight', '36.bias', '40.weight', '40.bias', '43.weight', '43.bias', '46.weight', '46.bias', '49.weight', '49.bias']
-# pretrained_keys = ['0.weight', '0.bias', '2.weight', '2.bias', '5.weight', '5.bias', '7.weight', '7.bias', '10.weight', '10.bias', '12.weight', '12.bias', '14.weight', '14.bias', '16.weight', '16.bias', '19.weight', '19.bias', '21.weight', '21.bias', '23.weight', '23.bias', '25.weight', '25.bias', '28.weight', '28.bias', '30.weight', '30.bias', '32.weight', '32.bias', '34.weight', '34.bias']
-# old_pretrained_keys = ['0.weight', '0.bias', '2.weight', '2.bias', '5.weight', '5.bias', '9.weight', '9.bias', '12.weight', '12.bias', '16.weight', '16.bias', '19.weight', '19.bias', '22.weight', '22.bias', '25.weight', '25.bias', '29.weight', '29.bias', '32.weight', '32.bias', '35.weight', '35.bias', '38.weight', '38.bias', '42.weight', '42.bias', '45.weight', '45.bias', '48.weight', '48.bias', '51.weight', '51.bias']
-# temp_state_dict = torch.load(args.vgg)
-# old_state_dict = torch.load('models/vgg_normalised.pth')
-# pretrained_layers = [old_state_dict[i] for i in old_pretrained_keys[:2]]+ [temp_state_dict[i] for i in pretrained_keys]
-# vgg_state_dict = vgg.state_dict()
-# assert len(vgg_keys) == len(pretrained_keys)
-# for i in range(len(old_pretrained_keys)):
-#     vgg_state_dict[old_pretrained_keys[i]] = pretrained_layers[i]
-# vgg.load_state_dict(vgg_state_dict)
-
-#vgg.load_state_dict(torch.load(args.vgg))
-
-#vgg = nn.Sequential(*list(vgg.children())[:31])
-#network = net.Net(vgg, decoder)
 network = net.Net(decoder)
 network.train()
 network.to(device)
@@ -116,37 +100,16 @@ network.to(device)
 content_tf = train_transform()
 style_tf = train_transform()
 
-DATASET = 'kaokore'  # pacs
-dataset_root = {'kaokore': 'data/kaokore_imagenet_style/status/train',
-                'pacs': 'data/pacs_data'}[DATASET]
+DATASET = 'kaokore'
+dataset_root = '../kaokore_imagenet_style/status/train'
 
-# content_dataset = FlatFolderDataset(args.content_dir, content_tf)
-# style_dataset = FlatFolderDataset(args.style_dir, style_tf)
 
-if DATASET == 'pacs':
-    domain_name = 'photo'
-    _, train_dataset = pacs.get_domain_dl(domain_name, content_tf)
-    indices = list(filter(lambda idx: train_dataset.fileclasses[idx] == '1', range(len(train_dataset.fileclasses))))
-    content_dataset = Subset(train_dataset, indices)
-    style_ds = ImageFolder(f'pacs-ohem-style/{domain_name}/rare/',
-                                       transform=style_tf)
-    style_indices = list(
-                            filter(lambda idx: style_ds[idx][1] == 0,
-                                   range(len(style_ds)))
-                    )
-    style_dataset = Subset(style_ds, style_indices)
-else:
-    domain_name = 'kaokore_control'
-    train_dataset = ImageFolder(dataset_root, transform=transforms.ToTensor())
-    content_dataset = train_dataset
-    style_dataset = ImageFolder(dataset_root, transform=transforms.ToTensor())
-    # style_ds = ImageFolder('kaokore-ohem-k100/rare/',
-    #                                    transform=style_tf)
-    # style_indices = list(
-    #                         filter(lambda idx: style_ds[idx][1] == 0,
-    #                                range(len(style_ds)))
-    #                 )
-    # style_dataset = Subset(style_ds, style_indices)
+
+
+output_name = 'kaokore_stylized'
+train_dataset = ImageFolder(dataset_root, transform=transforms.ToTensor())
+content_dataset = train_dataset
+style_dataset = ImageFolder(dataset_root, transform=transforms.ToTensor())
 
 
 
@@ -189,5 +152,5 @@ for i in tqdm(range(args.max_iter)):
         # for key in state_dict.keys():
         #     state_dict[key] = state_dict[key].to(torch.device('cpu'))
         torch.save(state_dict, save_dir /
-                   'decoder_iter_{:d}_{}.pth'.format(i + 1,domain_name))
+                   'decoder_iter_{:d}_{}.pth'.format(i + 1,output_name))
 writer.close()
