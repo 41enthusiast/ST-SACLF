@@ -24,7 +24,7 @@ The datasets should be outside the repository if downloaded from the google driv
 ### Style transfer to generate the augmented dataset
 python pytorch-AdaIN/train.py --save_dir models --max_iter 20000
 
-python pytorch-AdaIN/test.py --decoder models/decoder_iter_1_kaokore_stylized.pth
+python pytorch-AdaIN/test.py --decoder models/decoder_iter_20000_kaokore_stylized.pth
 
 ### Training and testing the model
 
