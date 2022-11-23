@@ -15,7 +15,6 @@ from sampler import InfiniteSamplerWrapper
 
 
 from torch.utils.data import Subset
-from dataset_processing import pacs
 from torchvision.datasets import ImageFolder
 
 cudnn.benchmark = True
