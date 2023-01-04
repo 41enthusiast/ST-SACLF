@@ -1,5 +1,9 @@
 # Painting Classification with Style Transfer
 Code for the VISAPP'23 paper 'Tackling Data Bias in Painting Classification with Style Transfer'.
+![](misc/overall.png)
+
+# Style Transfer-Spatial Attention CLassiFier
+![](misc/better_convergence_plot.png) ![](misc/test_acc_positive_trend_significant.png) ![](misc/test_f1_positive_trend.png)
 
 ## Dataset
 
