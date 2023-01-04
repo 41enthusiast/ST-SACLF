@@ -3,7 +3,12 @@ Code for the VISAPP'23 paper 'Tackling Data Bias in Painting Classification with
 ![](misc/overall.png)
 
 # Style Transfer-Spatial Attention CLassiFier
-![](misc/better_convergence_plot.png) ![](misc/test_acc_positive_trend_significant.png) ![](misc/test_f1_positive_trend.png)
+
+## Model performance
+![](misc/better_convergence_plot.png =30%x) ![](misc/test_acc_positive_trend_significant.png =30%x) ![](misc/test_f1_positive_trend.png =30%x)
+
+## Spatial Attention maps
+![](misc/attention.png)
 
 ## Dataset
 
