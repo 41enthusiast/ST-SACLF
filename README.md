@@ -1,4 +1,5 @@
-# kaokore-visapp
+# Painting Classification with Style Transfer
+Code for the VISAPP'23 paper 'Tackling Data Bias in Painting Classification with Style Transfer'.
 
 ## Dataset
 
@@ -35,3 +36,14 @@ python train_test.py
 attention.py has been adapted from https://github.com/0aqz0/pytorch-attention-mechanism.git
 
 pytorch-AdaIN has been adapted from https://github.com/naoto0804/pytorch-AdaIN.git
+
+## Citation
+If you use our code or data, please cite:
+```
+@inproceedings{mridula2023tackling,
+    title={Tackling Data Bias in Painting Classification with Style Transfer},
+    author={Vijendran, Mridula and Li, Frederick W. B. and Shum, Hubert P. H.},
+    booktitle={International Conference on Computer Vision Theory and Applications (VISAPP)},
+    year={2023}
+}
+```
